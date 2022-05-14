@@ -295,9 +295,13 @@ public class Service extends com.alibaba.nacos.api.naming.pojo.Service implement
      * Init service.
      */
     public void init() {
+        // 开启定时清除过期instance任务
         HealthCheckReactor.scheduleCheck(clientBeatCheckTask);
+        // 开启了当前service所包含的所有cluster的健康检测任务
         for (Map.Entry<String, Cluster> entry : clusterMap.entrySet()) {
             entry.getValue().setService(this);
+            // 开启当前遍历cluster的健康检测任务：将当前cluster包含的所有instance心跳检测任务定时添加到一个任务队列taskQueue中即可
+            // 即将当前cluster所包含的持久实例的心跳任务添加到taskQueue（持久实例是服务端主动检测）
             entry.getValue().init();
         }
     }
@@ -336,7 +340,9 @@ public class Service extends com.alibaba.nacos.api.naming.pojo.Service implement
      */
     public List<Instance> allIPs() {
         List<Instance> result = new ArrayList<>();
+        // 遍历当前service所包含的所有cluster
         for (Map.Entry<String, Cluster> entry : clusterMap.entrySet()) {
+            // 将当前遍历cluster中包含的所有instance添加到result
             result.addAll(entry.getValue().allIPs());
         }
 
@@ -410,7 +416,7 @@ public class Service extends com.alibaba.nacos.api.naming.pojo.Service implement
                 invalidIpCount++;
             }
 
-            ipCount++;
+            ipCount++; // size ?? hah
         }
 
         serviceObject.put("ipCount", ipCount);
@@ -423,9 +429,11 @@ public class Service extends com.alibaba.nacos.api.naming.pojo.Service implement
 
         List<Object> clustersList = new ArrayList<Object>();
 
+        // 遍历当前service的所有cluster
         for (Map.Entry<String, Cluster> entry : service.getClusterMap().entrySet()) {
             Cluster cluster = entry.getValue();
 
+            // 将当前遍历的cluster的描述信息写入到clusters集合
             Map<Object, Object> clusters = new HashMap<Object, Object>(10);
             clusters.put("name", cluster.getName());
             clusters.put("healthChecker", cluster.getHealthChecker());
@@ -434,9 +442,11 @@ public class Service extends com.alibaba.nacos.api.naming.pojo.Service implement
             clusters.put("useIPPort4Check", cluster.isUseIPPort4Check());
             clusters.put("sitegroup", cluster.getSitegroup());
 
+            // 将当前遍历cluster数据写入到clustersList
             clustersList.add(clusters);
         }
 
+        // 将当前service的所有cluster信息写入map
         serviceObject.put("clusters", clustersList);
 
         try {
@@ -539,9 +549,11 @@ public class Service extends com.alibaba.nacos.api.naming.pojo.Service implement
      * Re-calculate checksum of service.
      */
     public synchronized void recalculateChecksum() {
+        // 获取当前service所包含的所有instance列表
         List<Instance> ips = allIPs();
 
         StringBuilder ipsString = new StringBuilder();
+        // 将service所数据追加到ipsString
         ipsString.append(getServiceString());
 
         if (Loggers.SRV_LOG.isDebugEnabled()) {
@@ -552,13 +564,14 @@ public class Service extends com.alibaba.nacos.api.naming.pojo.Service implement
             Collections.sort(ips);
         }
 
+        // 遍历所有instances,将它们的数据进行追加
         for (Instance ip : ips) {
             String string = ip.getIp() + ":" + ip.getPort() + "_" + ip.getWeight() + "_" + ip.isHealthy() + "_" + ip
                     .getClusterName();
             ipsString.append(string);
             ipsString.append(",");
         }
-
+        // 最终获取到当前service的所有数据,经MD5加密后赋值给checksum
         checksum = MD5Utils.md5Hex(ipsString.toString(), Constants.ENCODE);
     }
 

@@ -35,21 +35,23 @@ import java.net.URI;
  * @author mai.jh
  */
 public class DefaultAsyncHttpClientRequest implements AsyncHttpClientRequest {
-    
+
     private final CloseableHttpAsyncClient asyncClient;
-    
+
     public DefaultAsyncHttpClientRequest(CloseableHttpAsyncClient asyncClient) {
         this.asyncClient = asyncClient;
         if (!this.asyncClient.isRunning()) {
             this.asyncClient.start();
         }
     }
-    
+
     @Override
     public <T> void execute(URI uri, String httpMethod, RequestHttpEntity requestHttpEntity, final ResponseHandler<T> responseHandler,
             final Callback<T> callback) throws Exception {
         HttpRequestBase httpRequestBase = DefaultHttpClientRequest.build(uri, httpMethod, requestHttpEntity);
+        // 调用Apache的Http异步Client完成请求的提交
         asyncClient.execute(httpRequestBase, new FutureCallback<HttpResponse>() {
+            // 请求获取到响应后会触发该回调方法的执行
             @Override
             public void completed(HttpResponse result) {
                 DefaultClientHttpResponse response = new DefaultClientHttpResponse(result);
@@ -60,20 +62,20 @@ public class DefaultAsyncHttpClientRequest implements AsyncHttpClientRequest {
                     callback.onError(e);
                 }
             }
-            
+
             @Override
             public void failed(Exception ex) {
                 callback.onError(ex);
             }
-            
+
             @Override
             public void cancelled() {
                 callback.onCancel();
             }
         });
-        
+
     }
-    
+
     @Override
     public void close() throws IOException {
         this.asyncClient.close();
