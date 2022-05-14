@@ -22,15 +22,16 @@ package com.alibaba.nacos.naming.misc;
  * @author nacos
  */
 public interface Synchronizer {
-    
+
     /**
      * Send message to server.
+     * 将msg发送给指定的server
      *
      * @param serverIP target server address
      * @param msg      message to send
      */
     void send(String serverIP, Message msg);
-    
+
     /**
      * Get message from server using message key.
      *

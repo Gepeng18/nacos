@@ -41,13 +41,13 @@ import java.util.Map;
  * @author mai.jh
  */
 public class JdkHttpClientRequest implements HttpClientRequest {
-    
+
     private HttpClientConfig httpClientConfig;
-    
+
     public JdkHttpClientRequest(HttpClientConfig httpClientConfig) {
         this.httpClientConfig = httpClientConfig;
     }
-    
+
     /**
      * Use specified {@link SSLContext}.
      *
@@ -59,7 +59,7 @@ public class JdkHttpClientRequest implements HttpClientRequest {
             HttpsURLConnection.setDefaultSSLSocketFactory(sslContext.getSocketFactory());
         }
     }
-    
+
     /**
      * Replace the default HostnameVerifier.
      *
@@ -71,14 +71,15 @@ public class JdkHttpClientRequest implements HttpClientRequest {
             HttpsURLConnection.setDefaultHostnameVerifier(hostnameVerifier);
         }
     }
-    
+
     @Override
     public HttpClientResponse execute(URI uri, String httpMethod, RequestHttpEntity requestHttpEntity)
             throws Exception {
         final Object body = requestHttpEntity.getBody();
         final Header headers = requestHttpEntity.getHeaders();
         replaceDefaultConfig(requestHttpEntity.getHttpClientConfig());
-        
+
+        // 创建一个HttpURLConnection
         HttpURLConnection conn = (HttpURLConnection) uri.toURL().openConnection();
         Map<String, String> headerMap = headers.getHeader();
         if (headerMap != null && headerMap.size() > 0) {
@@ -86,7 +87,7 @@ public class JdkHttpClientRequest implements HttpClientRequest {
                 conn.setRequestProperty(entry.getKey(), entry.getValue());
             }
         }
-        
+
         conn.setConnectTimeout(this.httpClientConfig.getConTimeOutMillis());
         conn.setReadTimeout(this.httpClientConfig.getReadTimeOutMillis());
         conn.setRequestMethod(httpMethod);
@@ -106,10 +107,10 @@ public class JdkHttpClientRequest implements HttpClientRequest {
                 conn.getOutputStream().close();
             }
         }
-        conn.connect();
+        conn.connect();  // 发出连接请求
         return new JdkHttpClientResponse(conn);
     }
-    
+
     /**
      * Replace the HTTP config created by default with the HTTP config specified in the request.
      *
@@ -121,9 +122,9 @@ public class JdkHttpClientRequest implements HttpClientRequest {
         }
         this.httpClientConfig = replaceConfig;
     }
-    
+
     @Override
     public void close() throws IOException {
-    
+
     }
 }

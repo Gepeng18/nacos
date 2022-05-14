@@ -34,123 +34,126 @@ import static com.alibaba.nacos.api.common.Constants.NUMBER_PATTERN;
  */
 @JsonInclude(Include.NON_NULL)
 public class Instance {
-    
+
     /**
      * unique id of this instance.
+     * 例如, 192.168.3.8#8082#myItdachangCluster#my_atguigu@@abcmsc-provider-depart
      */
     private String instanceId;
-    
+
     /**
      * instance ip.
      */
     private String ip;
-    
+
     /**
      * instance port.
      */
     private int port;
-    
+
     /**
      * instance weight.
      */
     private double weight = 1.0D;
-    
+
     /**
      * instance health status.
+     * 用于标记临时实例的健康状态
      */
     private boolean healthy = true;
-    
+
     /**
      * If instance is enabled to accept request.
      */
     private boolean enabled = true;
-    
+
     /**
      * If instance is ephemeral.
      *
      * @since 1.0.0
      */
     private boolean ephemeral = true;
-    
+
     /**
      * cluster information of instance.
      */
     private String clusterName;
-    
+
     /**
      * Service information of instance.
+     * 格式例如: my_atguigu@@abcmsc-provider-depart
      */
     private String serviceName;
-    
+
     /**
      * user extended attributes.
      */
     private Map<String, String> metadata = new HashMap<String, String>();
-    
+
     public String getInstanceId() {
         return this.instanceId;
     }
-    
+
     public void setInstanceId(final String instanceId) {
         this.instanceId = instanceId;
     }
-    
+
     public String getIp() {
         return this.ip;
     }
-    
+
     public void setIp(final String ip) {
         this.ip = ip;
     }
-    
+
     public int getPort() {
         return this.port;
     }
-    
+
     public void setPort(final int port) {
         this.port = port;
     }
-    
+
     public double getWeight() {
         return this.weight;
     }
-    
+
     public void setWeight(final double weight) {
         this.weight = weight;
     }
-    
+
     public boolean isHealthy() {
         return this.healthy;
     }
-    
+
     public void setHealthy(final boolean healthy) {
         this.healthy = healthy;
     }
-    
+
     public String getClusterName() {
         return this.clusterName;
     }
-    
+
     public void setClusterName(final String clusterName) {
         this.clusterName = clusterName;
     }
-    
+
     public String getServiceName() {
         return this.serviceName;
     }
-    
+
     public void setServiceName(final String serviceName) {
         this.serviceName = serviceName;
     }
-    
+
     public Map<String, String> getMetadata() {
         return this.metadata;
     }
-    
+
     public void setMetadata(final Map<String, String> metadata) {
         this.metadata = metadata;
     }
-    
+
     /**
      * add meta data.
      *
@@ -163,23 +166,23 @@ public class Instance {
         }
         metadata.put(key, value);
     }
-    
+
     public boolean isEnabled() {
         return this.enabled;
     }
-    
+
     public void setEnabled(final boolean enabled) {
         this.enabled = enabled;
     }
-    
+
     public boolean isEphemeral() {
         return this.ephemeral;
     }
-    
+
     public void setEphemeral(final boolean ephemeral) {
         this.ephemeral = ephemeral;
     }
-    
+
     @Override
     public String toString() {
         return "Instance{" + "instanceId='" + instanceId + '\'' + ", ip='" + ip + '\'' + ", port=" + port + ", weight="
@@ -187,50 +190,50 @@ public class Instance {
                 + ", clusterName='" + clusterName + '\'' + ", serviceName='" + serviceName + '\'' + ", metadata="
                 + metadata + '}';
     }
-    
+
     public String toInetAddr() {
         return ip + ":" + port;
     }
-    
+
     @Override
     public boolean equals(final Object obj) {
         if (!(obj instanceof Instance)) {
             return false;
         }
-        
+
         final Instance host = (Instance) obj;
         return Instance.strEquals(host.toString(), toString());
     }
-    
+
     @Override
     public int hashCode() {
         return toString().hashCode();
     }
-    
+
     private static boolean strEquals(final String str1, final String str2) {
         return str1 == null ? str2 == null : str1.equals(str2);
     }
-    
+
     public long getInstanceHeartBeatInterval() {
         return getMetaDataByKeyWithDefault(PreservedMetadataKeys.HEART_BEAT_INTERVAL,
                 Constants.DEFAULT_HEART_BEAT_INTERVAL);
     }
-    
+
     public long getInstanceHeartBeatTimeOut() {
         return getMetaDataByKeyWithDefault(PreservedMetadataKeys.HEART_BEAT_TIMEOUT,
                 Constants.DEFAULT_HEART_BEAT_TIMEOUT);
     }
-    
+
     public long getIpDeleteTimeout() {
         return getMetaDataByKeyWithDefault(PreservedMetadataKeys.IP_DELETE_TIMEOUT,
                 Constants.DEFAULT_IP_DELETE_TIMEOUT);
     }
-    
+
     public String getInstanceIdGenerator() {
         return getMetaDataByKeyWithDefault(PreservedMetadataKeys.INSTANCE_ID_GENERATOR,
                 Constants.DEFAULT_INSTANCE_ID_GENERATOR);
     }
-    
+
     /**
      * Returns {@code true} if this metadata contains the specified key.
      *
@@ -243,7 +246,7 @@ public class Instance {
         }
         return getMetadata().containsKey(key);
     }
-    
+
     private long getMetaDataByKeyWithDefault(final String key, final long defaultValue) {
         if (getMetadata() == null || getMetadata().isEmpty()) {
             return defaultValue;
@@ -254,12 +257,12 @@ public class Instance {
         }
         return defaultValue;
     }
-    
+
     private String getMetaDataByKeyWithDefault(final String key, final String defaultValue) {
         if (getMetadata() == null || getMetadata().isEmpty()) {
             return defaultValue;
         }
         return getMetadata().get(key);
     }
-    
+
 }
