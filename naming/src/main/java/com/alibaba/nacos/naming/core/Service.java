@@ -129,9 +129,11 @@ public class Service extends com.alibaba.nacos.api.naming.pojo.Service implement
      * @param rsInfo metrics info of server
      */
     public void processClientBeat(final RsInfo rsInfo) {
+        // 创建一个处理器,其是一个任务
         ClientBeatProcessor clientBeatProcessor = new ClientBeatProcessor();
         clientBeatProcessor.setService(this);
         clientBeatProcessor.setRsInfo(rsInfo);
+        // 开启一个立即执行的任务，即执行任务的run()
         HealthCheckReactor.scheduleNow(clientBeatProcessor);
     }
 
@@ -378,6 +380,8 @@ public class Service extends com.alibaba.nacos.api.naming.pojo.Service implement
                 continue;
             }
 
+            //将当前遍历cluster的所有instance添加到result集合
+            //包含所有持久实例与临时实例
             result.addAll(clusterObj.allIPs());
         }
         return result;
@@ -394,6 +398,7 @@ public class Service extends com.alibaba.nacos.api.naming.pojo.Service implement
             clusters = new ArrayList<>();
             clusters.addAll(clusterMap.keySet());
         }
+        //获取到当前服务的所有cluster中的所有instance
         return allIPs(clusters);
     }
 
