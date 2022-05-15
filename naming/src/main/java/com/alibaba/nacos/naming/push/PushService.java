@@ -116,15 +116,25 @@ public class PushService implements ApplicationContextAware, ApplicationListener
         this.applicationContext = applicationContext;
     }
 
+    /**
+     * Server把数据推送给client
+     * 向所有该服务的订阅者Nacos Client进行UDP推送
+     *
+     * 在哪里接收？
+     * com.alibaba.nacos.client.naming.NacosNamingService#NacosNamingService(java.util.Properties)
+     *
+     */
     @Override
     public void onApplicationEvent(ServiceChangeEvent event) {
         Service service = event.getService();
         String serviceName = service.getName();
         String namespaceId = service.getNamespaceId();
 
+        // 启动一个定时操作,异步执行相关内容
         Future future = GlobalExecutor.scheduleUdpSender(() -> {
             try {
                 Loggers.PUSH.info(serviceName + " is changed, add it to push queue.");
+                // 从缓存map中获取当前服务的内层map,内层map中存放着当前服务的所有Nacos Client的UDP客户端PushClient
                 ConcurrentMap<String, PushClient> clients = clientMap
                         .get(UtilsAndCommons.assembleFullServiceName(namespaceId, serviceName));
                 if (MapUtils.isEmpty(clients)) {
@@ -132,10 +142,14 @@ public class PushService implements ApplicationContextAware, ApplicationListener
                 }
 
                 Map<String, Object> cache = new HashMap<>(16);
+                // 更新最后引用时间
                 long lastRefTime = System.nanoTime();
+                // 遍历所有pushClient，向所有该服务的订阅者Nacos Client进行UDP推送
                 for (PushClient client : clients.values()) {
+                    // 若当前pushClient为僵尸客户端(不干活了)
                     if (client.zombie()) {
                         Loggers.PUSH.debug("client is zombie: " + client.toString());
+                        // 将该pushClient移除
                         clients.remove(client.toString());
                         Loggers.PUSH.debug("client is zombie: " + client.toString());
                         continue;
@@ -167,6 +181,7 @@ public class PushService implements ApplicationContextAware, ApplicationListener
                             client.getServiceName(), client.getAddrStr(), client.getAgent(),
                             (ackEntry == null ? null : ackEntry.key));
 
+                    // UDP通信
                     udpPush(ackEntry);
                 }
             } catch (Exception e) {
@@ -387,7 +402,7 @@ public class PushService implements ApplicationContextAware, ApplicationListener
             return;
         }
 
-        // 发布服务变更事件
+        // 发布服务变更事件，这里会被 com.alibaba.nacos.naming.push.PushService.onApplicationEvent 执行
         this.applicationContext.publishEvent(new ServiceChangeEvent(this, service));
     }
 
@@ -604,26 +619,31 @@ public class PushService implements ApplicationContextAware, ApplicationListener
             return null;
         }
 
+        // 若UDP通信重试次数超出了最大阙值,则将该UDP通信从两个缓存map中干掉
         if (ackEntry.getRetryTimes() > MAX_RETRY_TIMES) {
             Loggers.PUSH.warn("max re-push times reached, retry times {}, key: {}", ackEntry.retryTimes, ackEntry.key);
             ackMap.remove(ackEntry.key);
             udpSendTimeMap.remove(ackEntry.key);
-            failedPush += 1;
+            failedPush += 1;  //失败计数器加一
             return ackEntry;
         }
 
         try {
+            // 总数量计数器+1
             if (!ackMap.containsKey(ackEntry.key)) {
                 totalPush++;
             }
+            // 放入缓存
             ackMap.put(ackEntry.key, ackEntry);
             udpSendTimeMap.put(ackEntry.key, System.currentTimeMillis());
 
             Loggers.PUSH.info("send udp packet: " + ackEntry.key);
+            // 发送UDP
             udpSocket.send(ackEntry.origin);
 
             ackEntry.increaseRetryTime();
 
+            // 重传器，开启定时任务,进行UPD通信失败后的重新推送
             GlobalExecutor.scheduleRetransmitter(new Retransmitter(ackEntry),
                     TimeUnit.NANOSECONDS.toMillis(ACK_TIMEOUT_NANOS), TimeUnit.MILLISECONDS);
 

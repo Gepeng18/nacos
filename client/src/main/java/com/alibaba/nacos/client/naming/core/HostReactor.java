@@ -107,6 +107,7 @@ public class HostReactor implements Closeable {
 
         this.updatingMap = new ConcurrentHashMap<String, Object>();
         this.failoverReactor = new FailoverReactor(this, cacheDir);
+        // 创建了一个 PushReceiver，用于UDP通信
         this.pushReceiver = new PushReceiver(this);
     }
 

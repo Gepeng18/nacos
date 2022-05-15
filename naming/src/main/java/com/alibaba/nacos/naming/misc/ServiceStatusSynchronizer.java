@@ -31,63 +31,64 @@ import java.util.Map;
  * @author nacos
  */
 public class ServiceStatusSynchronizer implements Synchronizer {
-    
+
     @Override
     public void send(final String serverIP, Message msg) {
         if (serverIP == null) {
             return;
         }
-        
+
         Map<String, String> params = new HashMap<String, String>(10);
-        
+
         params.put("statuses", msg.getData());
         params.put("clientIP", NetUtils.localServer());
-        
+
         String url = "http://" + serverIP + ":" + ApplicationUtils.getPort() + ApplicationUtils.getContextPath()
                 + UtilsAndCommons.NACOS_NAMING_CONTEXT + "/service/status";
-        
+
         if (serverIP.contains(UtilsAndCommons.IP_PORT_SPLITER)) {
             url = "http://" + serverIP + ApplicationUtils.getContextPath() + UtilsAndCommons.NACOS_NAMING_CONTEXT
                     + "/service/status";
         }
-        
+
         try {
+            // 调用Nacos自研的HttpClient发送请求(post请求)
             HttpClient.asyncHttpPostLarge(url, null, JacksonUtils.toJson(params), new Callback<String>() {
                 @Override
                 public void onReceive(RestResult<String> result) {
                     if (!result.ok()) {
                         Loggers.SRV_LOG.warn("[STATUS-SYNCHRONIZE] failed to request serviceStatus, remote server: {}",
                                 serverIP);
-        
+
                     }
                 }
-    
+
                 @Override
                 public void onError(Throwable throwable) {
                     Loggers.SRV_LOG.warn("[STATUS-SYNCHRONIZE] failed to request serviceStatus, remote server: " + serverIP, throwable);
                 }
-    
+
                 @Override
                 public void onCancel() {
-        
+
                 }
             });
         } catch (Exception e) {
             Loggers.SRV_LOG.warn("[STATUS-SYNCHRONIZE] failed to request serviceStatus, remote server: " + serverIP, e);
         }
-        
+
     }
-    
+
     @Override
     public Message get(String serverIP, String key) {
         if (serverIP == null) {
             return null;
         }
-        
+
         Map<String, String> params = new HashMap<>(1);
-        
+
         params.put("key", key);
-        
+
         String result;
         try {
             if (Loggers.SRV_LOG.isDebugEnabled()) {
@@ -100,14 +101,14 @@ public class ServiceStatusSynchronizer implements Synchronizer {
             Loggers.SRV_LOG.warn("[STATUS-SYNCHRONIZE] Failed to get service status from " + serverIP, e);
             return null;
         }
-        
+
         if (result == null || result.equals(StringUtils.EMPTY)) {
             return null;
         }
-        
+
         Message msg = new Message();
         msg.setData(result);
-        
+
         return msg;
     }
 }
