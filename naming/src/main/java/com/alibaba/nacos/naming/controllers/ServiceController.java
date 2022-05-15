@@ -206,6 +206,7 @@ public class ServiceController {
         String groupName = WebUtils.optional(request, CommonParams.GROUP_NAME, Constants.DEFAULT_GROUP);
         String selectorString = WebUtils.optional(request, "selector", StringUtils.EMPTY);
 
+        // 从server端注册表中取出数据
         List<String> serviceNameList = serviceManager.getAllServiceNameList(namespaceId);
 
         ObjectNode result = JacksonUtils.createEmptyJsonNode();
@@ -216,8 +217,10 @@ public class ServiceController {
             return result;
         }
 
+        // 根据namespaceId 和 groupName筛选出serviceName
         serviceNameList.removeIf(serviceName -> !serviceName.startsWith(groupName + Constants.SERVICE_INFO_SPLITER));
 
+        // 根据 selectorString 对 serviceNameList 进行过滤
         if (StringUtils.isNotBlank(selectorString)) {
 
             JsonNode selectorJson = JacksonUtils.toObj(selectorString);
@@ -257,6 +260,7 @@ public class ServiceController {
             end = serviceNameList.size();
         }
 
+        // 返回数据，将serviceName中的 groupName去掉了
         for (int i = start; i < end; i++) {
             serviceNameList.set(i, serviceNameList.get(i).replace(groupName + Constants.SERVICE_INFO_SPLITER, ""));
         }

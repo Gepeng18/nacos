@@ -139,6 +139,11 @@ public class HostReactor implements Closeable {
         boolean changed = false;
 
         // 若当前注册表中存在当前服务,则想办法将来自于server的数据更新到本地注册表
+        // 这里只干了两件非常重要的事：
+        // 1、serviceInfoMap.put(serviceInfo.getKey(), serviceInfo); + serviceInfo.setJsonFromServer(json);
+        //    这就是更新serviceInfo
+        // 2、updateBeatInfo(modHosts); 更新心跳
+        // 3、eventDispatcher.serviceChanged(serviceInfo); 记录变更事件
         if (oldService != null) {
 
             // 服务器中应该是最新的数据，所以正常情况下，serviceInfo.lastRefTime比oldService要大
@@ -274,8 +279,8 @@ public class HostReactor implements Closeable {
 
         String key = ServiceInfo.getKey(serviceName, clusters);
 
-        // serviceInfoMap即为CLient端的本地注册表,
-        // keygroupId@@微服务名称@@cLusters名称 ,value 为 ServiceInfo
+        // serviceInfoMap即为Client端的本地注册表,
+        // key: groupId@@微服务名称@@clusters名称 ,value 为 ServiceInfo
         return serviceInfoMap.get(key);
     }
 

@@ -47,30 +47,34 @@ import static com.alibaba.nacos.client.utils.LogUtils.NAMING_LOGGER;
  */
 @SuppressWarnings("PMD.ThreadPoolCreationRule")
 public class EventDispatcher implements Closeable {
-    
+
     private ExecutorService executor = null;
-    
+
+    /**
+     * 当从server获取的注册表与本地注册表不同时，add: com.alibaba.nacos.client.naming.core.HostReactor#processServiceJson
+     *
+     */
     private final BlockingQueue<ServiceInfo> changedServices = new LinkedBlockingQueue<ServiceInfo>();
-    
+
     private final ConcurrentMap<String, List<EventListener>> observerMap = new ConcurrentHashMap<String, List<EventListener>>();
-    
+
     private volatile boolean closed = false;
-    
+
     public EventDispatcher() {
-        
+
         this.executor = Executors.newSingleThreadExecutor(new ThreadFactory() {
             @Override
             public Thread newThread(Runnable r) {
                 Thread thread = new Thread(r, "com.alibaba.nacos.naming.client.listener");
                 thread.setDaemon(true);
-                
+
                 return thread;
             }
         });
-        
+
         this.executor.execute(new Notifier());
     }
-    
+
     /**
      * Add listener.
      *
@@ -79,19 +83,19 @@ public class EventDispatcher implements Closeable {
      * @param listener    listener
      */
     public void addListener(ServiceInfo serviceInfo, String clusters, EventListener listener) {
-        
+
         NAMING_LOGGER.info("[LISTENER] adding " + serviceInfo.getName() + " with " + clusters + " to listener map");
         List<EventListener> observers = Collections.synchronizedList(new ArrayList<EventListener>());
         observers.add(listener);
-        
+
         observers = observerMap.putIfAbsent(ServiceInfo.getKey(serviceInfo.getName(), clusters), observers);
         if (observers != null) {
             observers.add(listener);
         }
-        
+
         serviceChanged(serviceInfo);
     }
-    
+
     /**
      * Remove listener.
      *
@@ -100,9 +104,9 @@ public class EventDispatcher implements Closeable {
      * @param listener    listener
      */
     public void removeListener(String serviceName, String clusters, EventListener listener) {
-        
+
         NAMING_LOGGER.info("[LISTENER] removing " + serviceName + " with " + clusters + " from listener map");
-        
+
         List<EventListener> observers = observerMap.get(ServiceInfo.getKey(serviceName, clusters));
         if (observers != null) {
             Iterator<EventListener> iter = observers.iterator();
@@ -117,11 +121,11 @@ public class EventDispatcher implements Closeable {
             }
         }
     }
-    
+
     public boolean isSubscribed(String serviceName, String clusters) {
         return observerMap.containsKey(ServiceInfo.getKey(serviceName, clusters));
     }
-    
+
     public List<ServiceInfo> getSubscribeServices() {
         List<ServiceInfo> serviceInfos = new ArrayList<ServiceInfo>();
         for (String key : observerMap.keySet()) {
@@ -129,7 +133,7 @@ public class EventDispatcher implements Closeable {
         }
         return serviceInfos;
     }
-    
+
     /**
      * Service changed.
      *
@@ -139,10 +143,10 @@ public class EventDispatcher implements Closeable {
         if (serviceInfo == null) {
             return;
         }
-        
+
         changedServices.add(serviceInfo);
     }
-    
+
     @Override
     public void shutdown() throws NacosException {
         String className = this.getClass().getName();
@@ -151,26 +155,26 @@ public class EventDispatcher implements Closeable {
         closed = true;
         NAMING_LOGGER.info("{} do shutdown stop", className);
     }
-    
+
     private class Notifier implements Runnable {
-        
+
         @Override
         public void run() {
             while (!closed) {
-                
+
                 ServiceInfo serviceInfo = null;
                 try {
                     serviceInfo = changedServices.poll(5, TimeUnit.MINUTES);
                 } catch (Exception ignore) {
                 }
-                
+
                 if (serviceInfo == null) {
                     continue;
                 }
-                
+
                 try {
                     List<EventListener> listeners = observerMap.get(serviceInfo.getKey());
-                    
+
                     if (!CollectionUtils.isEmpty(listeners)) {
                         for (EventListener listener : listeners) {
                             List<Instance> hosts = Collections.unmodifiableList(serviceInfo.getHosts());
@@ -178,7 +182,7 @@ public class EventDispatcher implements Closeable {
                                     serviceInfo.getClusters(), hosts));
                         }
                     }
-                    
+
                 } catch (Exception e) {
                     NAMING_LOGGER.error("[NA] notify error for service: " + serviceInfo.getName() + ", clusters: "
                             + serviceInfo.getClusters(), e);

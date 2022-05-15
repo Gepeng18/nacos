@@ -192,6 +192,9 @@ public class NacosNamingService implements NamingService {
 
     /**
      * 注册与心跳入口
+     * 就主要干了两件事：
+     * 1、注册，发送给Server的     /v1/ns/instance
+     * 2、心跳，定时发送给Server的 /v1/ns/instance/beat
      */
     @Override
     public void registerInstance(String serviceName, String groupName, Instance instance) throws NacosException {

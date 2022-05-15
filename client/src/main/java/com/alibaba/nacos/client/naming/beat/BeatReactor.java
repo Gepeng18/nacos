@@ -85,10 +85,12 @@ public class BeatReactor implements Closeable {
         BeatInfo existBeat = null;
         //fix #1733
         // dom2Beat是一个缓存map,key为主机, value则为该主机发送的心跳beatInfo
+        // 如果相同的实例注册了两次，会将老的停了，然后把新的加入这个缓存map中
         if ((existBeat = dom2Beat.remove(key)) != null) {
             existBeat.setStopped(true);
         }
         dom2Beat.put(key, beatInfo);
+        // 循环执行心跳任务
         executorService.schedule(new BeatTask(beatInfo), beatInfo.getPeriod(), TimeUnit.MILLISECONDS);
         MetricsMonitor.getDom2BeatSizeMonitor().set(dom2Beat.size());
     }
