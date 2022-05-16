@@ -708,6 +708,7 @@ public class InstanceController {
             List<Instance> ips = entry.getValue();
 
             //若客户端只要健康的instance,且当前遍历的map的key为false,则跳过
+            // 这里注意一点，如果到了保护阈值，那么true的list中也含有false的instance，这个不会过滤掉的
             if (healthyOnly && !entry.getKey()) {
                 continue;
             }

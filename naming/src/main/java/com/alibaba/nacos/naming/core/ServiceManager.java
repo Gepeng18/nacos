@@ -326,7 +326,7 @@ public class ServiceManager implements RecordListener<Service> {
 
         ArrayNode ipList = (ArrayNode) serviceJson.get("ips");
         // 这个map中存放的是来自于其他Nacos中的 当前服务所包含的所有instance的健康状态
-        // map 的key ip:port, valueheal thy
+        // map 的key ip:port, value: healthy
         Map<String, String> ipsMap = new HashMap<>(ipList.size());
         // 遍历来自其他server的instance
         for (int i = 0; i < ipList.size(); i++) {
@@ -366,7 +366,7 @@ public class ServiceManager implements RecordListener<Service> {
 
         // 只要有一个instance的状态发生了变更,那么这个changed的值就为true
         if (changed) {
-            // 发布状态变更时间，由onApplicationEvent执行，再执行UDP同步
+            // 发布状态变更事件，由onApplicationEvent执行，再执行UDP同步
             pushService.serviceChanged(service);
             if (Loggers.EVT_LOG.isDebugEnabled()) {
                 StringBuilder stringBuilder = new StringBuilder();

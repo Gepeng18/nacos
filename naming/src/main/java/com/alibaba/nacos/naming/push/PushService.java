@@ -481,6 +481,7 @@ public class PushService implements ApplicationContextAware, ApplicationListener
             this.params = params;
         }
 
+        // 这个时间，在server订阅服务时，创建UDP客户端时，被改过
         public long lastRefTime = System.currentTimeMillis();
 
         public PushClient(String namespaceId, String serviceName, String clusters, String agent,
