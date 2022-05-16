@@ -73,7 +73,10 @@ public class BeatReactor implements Closeable {
 
     /**
      * Add beat information.
-     *
+     * 1、将beatInfo添加进来，如果老的存在，则把老的删除
+     * 2、循环执行心跳发送任务
+     *      2.1 发送心跳
+     *      2.2 如果服务端返回未找到该instance，则向服务端注册该instance
      * @param serviceName service name
      * @param beatInfo    beat information
      */
@@ -90,7 +93,7 @@ public class BeatReactor implements Closeable {
             existBeat.setStopped(true);
         }
         dom2Beat.put(key, beatInfo);
-        // 循环执行心跳任务
+        // 循环执行心跳发送任务
         executorService.schedule(new BeatTask(beatInfo), beatInfo.getPeriod(), TimeUnit.MILLISECONDS);
         MetricsMonitor.getDom2BeatSizeMonitor().set(dom2Beat.size());
     }
@@ -186,7 +189,7 @@ public class BeatReactor implements Closeable {
                     code = result.get(CommonParams.CODE).asInt();
                 }
 
-                // 若在server端没有发生该client,则server返回的状态码为20404
+                // 若在server端没有发现该client,则server返回的状态码为20404
                 // 此时client会发起注册请求
                 if (code == NamingResponseCode.RESOURCE_NOT_FOUND) {
                     Instance instance = new Instance();

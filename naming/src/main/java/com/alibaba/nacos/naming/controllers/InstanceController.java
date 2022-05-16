@@ -571,6 +571,18 @@ public class InstanceController {
      * @param healthyOnly whether only for healthy check
      * @return service full information with instances
      * @throws Exception any error during handle
+     *
+     * 1、从server的注册表中拿到当前服务信息
+     * 2、根据保护阈值返回数据
+     * 3、创建 Nacos client 到 clientMap 中
+     *      PushService其中的时候，就有一个定时操作，将数据推送给UDP client，数据就存储在clientMap中
+     * 说实话，没看懂这一系列操作：
+     * 1、客户端把信息上报给/v1/ns/instance/list
+     * 2、controller中将数据放到clientMap中
+     * 3、pushService 启动时，就执行，将数据通过UDP发送给那个client，这忙活了半天在干啥呢
+     *
+     * 2022.5.16
+     * 明白了，每个客户端上报自己的信息后，隶属于同一个serviceName的客户端存在一个map中，然后发送UDP请求时，
      */
     public ObjectNode doSrvIpxt(String namespaceId, String serviceName, String agent, String clusters, String clientIP,
             int udpPort, String env, boolean isCheck, String app, String tid, boolean healthyOnly) throws Exception {

@@ -508,6 +508,8 @@ public class NamingProxy implements Closeable {
      * @param method  http method
      * @return result
      * @throws NacosException nacos exception
+     *
+     * 多台Nacos， 使用随机 + 轮询
      */
     public String reqApi(String api, Map<String, String> params, Map<String, String> body, List<String> servers,
             String method) throws NacosException {

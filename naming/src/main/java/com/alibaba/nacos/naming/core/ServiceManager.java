@@ -487,7 +487,7 @@ public class ServiceManager implements RecordListener<Service> {
      */
     public void createServiceIfAbsent(String namespaceId, String serviceName, boolean local, Cluster cluster)
             throws NacosException {
-        // 从注册表中获取service
+        // 从注册表中根据namespace与serviceName 获取service
         Service service = getService(namespaceId, serviceName);
         // 若当前注册instance是其提供服务的第一个实例,则注册表中是没有该service的,
         // 此时会创建一个service实例
@@ -593,7 +593,7 @@ public class ServiceManager implements RecordListener<Service> {
         Service service = getService(namespaceId, serviceName);
 
         synchronized (service) {
-            // 将要注册的instance写入到service，即写入到了注册表
+            // 更新，然后获得这个服务里面的所有实例(通过一致性服务)
             List<Instance> instanceList = addIpAddresses(service, ephemeral, ips);
 
             Instances instances = new Instances();

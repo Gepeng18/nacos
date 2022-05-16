@@ -84,6 +84,12 @@ public class EventDispatcher implements Closeable {
      */
     public void addListener(ServiceInfo serviceInfo, String clusters, EventListener listener) {
 
+        /**
+         * 服务注册时，会有一个listener被添加进来
+         * EventListener eventListener = event -> NacosWatch.this.publisher
+         * 							.publishEvent(new HeartbeatEvent(NacosWatch.this,
+         * 									nacosWatchIndex.getAndIncrement()));
+         */
         NAMING_LOGGER.info("[LISTENER] adding " + serviceInfo.getName() + " with " + clusters + " to listener map");
         List<EventListener> observers = Collections.synchronizedList(new ArrayList<EventListener>());
         observers.add(listener);
@@ -164,6 +170,8 @@ public class EventDispatcher implements Closeable {
 
                 ServiceInfo serviceInfo = null;
                 try {
+                    // 其他代码中，每当从server发现与本地注册表数据不一致，则将serviceInfo加入changedServices中
+                    // addListener 也会将serviceInfo加入changedServices中
                     serviceInfo = changedServices.poll(5, TimeUnit.MINUTES);
                 } catch (Exception ignore) {
                 }
@@ -172,6 +180,7 @@ public class EventDispatcher implements Closeable {
                     continue;
                 }
 
+                // 从observerMap中拿到相应的监听者，执行监听者的onEvent方法
                 try {
                     List<EventListener> listeners = observerMap.get(serviceInfo.getKey());
 

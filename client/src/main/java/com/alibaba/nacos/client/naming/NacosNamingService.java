@@ -85,16 +85,25 @@ public class NacosNamingService implements NamingService {
 
     private void init(Properties properties) throws NacosException {
         ValidatorUtils.checkInitParam(properties);
+        // 获取namespace
         this.namespace = InitUtils.initNamespaceForNaming(properties);
         InitUtils.initSerialization();
+
+        // 加载serverList
         initServerAddr(properties);
         InitUtils.initWebRootContext();
+        // 初始化 缓存地址
         initCacheDir();
         initLogName(properties);
 
+        // 事件分发器，就是你订阅了某个服务，然后服务改变的时候，nacos服务端就会通知到client端，
+        // client端收到这个通知后，就会将这个事件通知到观察者，也就是你自己实现的listener。
         this.eventDispatcher = new EventDispatcher();
+        // serverProxy：与nacos服务端通信的类
         this.serverProxy = new NamingProxy(this.namespace, this.endpoint, this.serverList, properties);
+        // 心跳：发送心跳的
         this.beatReactor = new BeatReactor(this.serverProxy, initClientBeatThreadCount(properties));
+        // host reactor：维护本地订阅的服务注册表信息。
         this.hostReactor = new HostReactor(this.eventDispatcher, this.serverProxy, beatReactor, this.cacheDir,
                 isLoadCacheAtStart(properties), initPollingThreadCount(properties));
     }
@@ -176,12 +185,14 @@ public class NacosNamingService implements NamingService {
     public void registerInstance(String serviceName, String groupName, String ip, int port, String clusterName)
             throws NacosException {
 
+        // 创建实例
         Instance instance = new Instance();
         instance.setIp(ip);
         instance.setPort(port);
         instance.setWeight(1.0);
         instance.setClusterName(clusterName);
 
+        // 注册
         registerInstance(serviceName, groupName, instance);
     }
 
@@ -202,7 +213,7 @@ public class NacosNamingService implements NamingService {
         String groupedServiceName = NamingUtils.getGroupedName(serviceName, groupName);
         //若当前实例为临时实例,则向Server发送心跳
         if (instance.isEphemeral()) {
-            //构建一个心跳信息实例
+            //构建一个心跳信息实例，用于服务续约
             BeatInfo beatInfo = beatReactor.buildBeatInfo(groupedServiceName, instance);
             //向server发送心跳(定时任务)
             beatReactor.addBeatInfo(groupedServiceName, beatInfo);

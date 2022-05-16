@@ -33,8 +33,8 @@ public class App {
         properties.setProperty("serverAddr", "21.34.53.5:8848,21.34.53.6:8848");
         properties.setProperty("namespace", "quickStart");
         NamingService naming = NamingFactory.createNamingService(properties);
-        naming.registerInstance("nacos.test.3", "11.11.11.11", 8888, "TEST1");
-        naming.registerInstance("nacos.test.3", "2.2.2.2", 9999, "DEFAULT");
-        System.out.println(naming.getAllInstances("nacos.test.3"));
+        naming.registerInstance("userService", "11.11.11.11", 8888, "TEST1");
+        naming.registerInstance("userService", "2.2.2.2", 9999, "DEFAULT");
+        System.out.println(naming.getAllInstances("userService"));
     }
 }

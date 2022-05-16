@@ -122,8 +122,12 @@ public class HostReactor implements Closeable {
     /**
      * Process service json.
      *
-     * @param json service json
-     * @return service info
+     * 这里干了三件非常重要的事：
+     * 1、serviceInfoMap.put(serviceInfo.getKey(), serviceInfo); + serviceInfo.setJsonFromServer(json);
+     *      这就是更新serviceInfo
+     * 2、updateBeatInfo(modHosts); 变更心跳信息(因为instance可能变了，所以要变更心跳)
+     * 3、eventDispatcher.serviceChanged(serviceInfo); 记录变更事件
+     *
      */
     // 分析这个方式之前要达成一个共识，来自于server的数据是最新的数据
     public ServiceInfo processServiceJson(String json) {
@@ -139,11 +143,6 @@ public class HostReactor implements Closeable {
         boolean changed = false;
 
         // 若当前注册表中存在当前服务,则想办法将来自于server的数据更新到本地注册表
-        // 这里只干了两件非常重要的事：
-        // 1、serviceInfoMap.put(serviceInfo.getKey(), serviceInfo); + serviceInfo.setJsonFromServer(json);
-        //    这就是更新serviceInfo
-        // 2、updateBeatInfo(modHosts); 更新心跳
-        // 3、eventDispatcher.serviceChanged(serviceInfo); 记录变更事件
         if (oldService != null) {
 
             // 服务器中应该是最新的数据，所以正常情况下，serviceInfo.lastRefTime比oldService要大
@@ -266,10 +265,11 @@ public class HostReactor implements Closeable {
     private void updateBeatInfo(Set<Instance> modHosts) {
         for (Instance instance : modHosts) {
             String key = beatReactor.buildKey(instance.getServiceName(), instance.getIp(), instance.getPort());
+            // 老的instance存在，且是临时节点，则
             if (beatReactor.dom2Beat.containsKey(key) && instance.isEphemeral()) {
                 // 构建新的beatInfo
                 BeatInfo beatInfo = beatReactor.buildBeatInfo(instance);
-                // 发送心跳
+                // 发送心跳(维持联系+如果没有注册，则注册)
                 beatReactor.addBeatInfo(instance.getServiceName(), beatInfo);
             }
         }
@@ -293,6 +293,12 @@ public class HostReactor implements Closeable {
         return null;
     }
 
+    /**
+     * 1、从当前client的本地注册表中获取当前服务
+     * 2、如果本地沒有这个服务，就创建空服务添加到本地注册表中，并且从Server拉取 (/v1/ns/instance/list)
+     * 3、如果发现本地该服务正在更新，则等一会后直接从本地注册表中获即可
+     * 4、启动一个定时任务，定期更新本地注册表,从Server拉取  (/v1/ns/instance/list)
+     */
     public ServiceInfo getServiceInfo(final String serviceName, final String clusters) {
 
         NAMING_LOGGER.debug("failover-mode: " + failoverReactor.isFailoverSwitch());

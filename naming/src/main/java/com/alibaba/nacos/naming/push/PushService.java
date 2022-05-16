@@ -639,9 +639,10 @@ public class PushService implements ApplicationContextAware, ApplicationListener
             udpSendTimeMap.put(ackEntry.key, System.currentTimeMillis());
 
             Loggers.PUSH.info("send udp packet: " + ackEntry.key);
-            // 发送UDP
+            // 发送UDP，将ackEntry中的data经过编码和压缩的数据以UDP发送
             udpSocket.send(ackEntry.origin);
 
+            // 这里感觉应该缺少了移除的逻辑，因为如果不移除，后面重传器会一直重传
             ackEntry.increaseRetryTime();
 
             // 重传器，开启定时任务,进行UPD通信失败后的重新推送
@@ -726,6 +727,12 @@ public class PushService implements ApplicationContextAware, ApplicationListener
             }
         }
 
+        /**
+         * 里面主要包含三块内容
+         * 1、key，作为标识
+         * 2、origin，是data经过编码和压缩的数据
+         * 3、data：原数据
+         */
         public static class AckEntry {
 
             public AckEntry(String key, DatagramPacket packet) {

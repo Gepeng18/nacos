@@ -200,6 +200,7 @@ public class Service extends com.alibaba.nacos.api.naming.pojo.Service implement
             }
         }
 
+        // 更新instance (参数1是新的instance集合，参数2是是否是临时节点)
         updateIPs(value.getInstanceList(), KeyBuilder.matchEphemeralInstanceListKey(key));
 
         recalculateChecksum();
@@ -232,6 +233,15 @@ public class Service extends com.alibaba.nacos.api.naming.pojo.Service implement
 
     /**
      * Update instances.
+     * 这个方法其实就是遍历instance集合，然后更新clusterMap 这个里面的内容，这个clusterMap 其实就是clusterName 与cluster的对应关系，
+     * 从代码上可以看到实现弄出所有的cluster，然后遍历instance集合，如果某个instance没有cluster，就设置成默认DEFAULT_CLUSTER_NAME，
+     * 如果某个cluster没有的话就创建。然后塞到一个cluster与instance集合对应关系的map中。
+     * 接着就是遍历clusterMap更新下instance列表，这个更新instance列表代码很多，主要思想还是比对新老的，然后找出新的instance，与挂了的instance，
+     * 注意这一步是更新 cluster对象里面的集合，其实就是2个set，一个存临时节点的，一个是存永久节点的。
+     *
+     * 这个方法干了两件事：
+     * 1、根据入参：instances 来 更新clusterMap
+     * 2、service服务列表发生变化，调用pushService进行通知的。
      *
      * @param instances instances
      * @param ephemeral whether is ephemeral instance
@@ -281,13 +291,14 @@ public class Service extends com.alibaba.nacos.api.naming.pojo.Service implement
         }
 
         setLastModifiedMillis(System.currentTimeMillis());
+        // service服务列表发生变化，然后进行通知的。
         getPushService().serviceChanged(this);
-        StringBuilder stringBuilder = new StringBuilder();
 
+        // 记日志
+        StringBuilder stringBuilder = new StringBuilder();
         for (Instance instance : allIPs()) {
             stringBuilder.append(instance.toIpAddr()).append("_").append(instance.isHealthy()).append(",");
         }
-
         Loggers.EVT_LOG.info("[IP-UPDATED] namespace: {}, service: {}, ips: {}", getNamespaceId(), getName(),
                 stringBuilder.toString());
 
@@ -295,6 +306,8 @@ public class Service extends com.alibaba.nacos.api.naming.pojo.Service implement
 
     /**
      * Init service.
+     * 往健康检查器中添加一个任务，健康检查的任务，
+     * 这个任务其实就是扫描这个service里面长时间没有心跳的instance（服务实例），然后进行健康状态改变，服务下线
      */
     public void init() {
         // 开启定时清除过期instance任务
