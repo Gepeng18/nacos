@@ -533,7 +533,7 @@ public class NamingProxy implements Closeable {
             for (int i = 0; i < servers.size(); i++) {
                 String server = servers.get(index);
                 try {
-                    // 连接server
+                    // do 连接server, 具体执行
                     return callServer(api, params, body, server, method);
                 } catch (NacosException e) {
                     exception = e;

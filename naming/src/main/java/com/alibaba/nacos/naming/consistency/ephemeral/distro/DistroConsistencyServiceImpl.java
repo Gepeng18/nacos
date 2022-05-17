@@ -145,7 +145,12 @@ public class DistroConsistencyServiceImpl implements EphemeralConsistencyService
             return;
         }
 
-        // 接着就是调用notifier添加任务
+        // do 调用notifier添加任务，这里就是添加【本地注册表】的刷新任务
+        // 这个时候，其实service 对象里面的instance列表并没有更新，这就是所谓nacos的异步注册异步下线，
+        // 会有一个后台线程，不停的从Notifier组件中的task 队列中取出task，然后调用handle方法进行事件通知，
+        // 其实就通知到service 对象的onChange 方法里面了，其实更新操作都是这个方法做的。
+        // do 注意，这里更像是往队列中扔一个标记，然后和本类中的listeners配合使用
+        // listener 在这里被添加 com.alibaba.nacos.naming.core.ServiceManager.putServiceAndInit
         notifier.addTask(key, DataOperation.CHANGE);
     }
 

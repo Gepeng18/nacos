@@ -232,6 +232,11 @@ public class NacosNamingService implements NamingService {
         deregisterInstance(serviceName, groupName, ip, port, Constants.DEFAULT_CLUSTER_NAME);
     }
 
+    /**
+     * 服务下线
+     * 可以使用serviceName， group，cluster不同条件来进行服务下线。如果你group没有设置就是使用默认的DEFAULT_GROUP，
+     * 如果你集群没有设置的话，也是使用默认的DEFAULT， serviceName ， ip，port这三个条件必须得有。
+     */
     @Override
     public void deregisterInstance(String serviceName, String ip, int port, String clusterName) throws NacosException {
         deregisterInstance(serviceName, Constants.DEFAULT_GROUP, ip, port, clusterName);
@@ -240,11 +245,13 @@ public class NacosNamingService implements NamingService {
     @Override
     public void deregisterInstance(String serviceName, String groupName, String ip, int port, String clusterName)
             throws NacosException {
+        // 创建instance
         Instance instance = new Instance();
         instance.setIp(ip);
         instance.setPort(port);
         instance.setClusterName(clusterName);
 
+        // 服务下线
         deregisterInstance(serviceName, groupName, instance);
     }
 
@@ -255,10 +262,12 @@ public class NacosNamingService implements NamingService {
 
     @Override
     public void deregisterInstance(String serviceName, String groupName, Instance instance) throws NacosException {
+        // 如果是临时节点的话，就会调用beatReactor这个组件移除beatInfo这个任务，就是不用再发送心跳续约了
         if (instance.isEphemeral()) {
             beatReactor.removeBeatInfo(NamingUtils.getGroupedName(serviceName, groupName), instance.getIp(),
                     instance.getPort());
         }
+        // 接着就是调用serverProxy这个组件的deregisterService 方法进行服务下线
         serverProxy.deregisterService(NamingUtils.getGroupedName(serviceName, groupName), instance);
     }
 

@@ -619,7 +619,7 @@ public class ServiceManager implements RecordListener<Service> {
         Service service = getService(namespaceId, serviceName);
 
         synchronized (service) {
-            // 删除
+            // 删除instance
             removeInstance(namespaceId, serviceName, ephemeral, service, ips);
         }
     }
@@ -627,9 +627,13 @@ public class ServiceManager implements RecordListener<Service> {
     private void removeInstance(String namespaceId, String serviceName, boolean ephemeral, Service service,
             Instance... ips) throws NacosException {
 
+        // 生成一个服务列表的key这个key与你instance是否是临时节点有关系，
+        // 如果是临时节点，生成的key是这个样子的com.alibaba.nacos.naming.iplist.ephemeral.{namespace}##{serviceName}
+        // 永久节点就是com.alibaba.nacos.naming.iplist.{namespace}##{serviceName} 这个样子
         String key = KeyBuilder.buildInstanceListKey(namespaceId, serviceName, ephemeral);
 
         // 从注册表中删除instance
+        // 调用substractIpAddresses 方法用之前的instance列表减去 这次要下线的实例列表，然后生成一份新的剖去下线的实例列表
         List<Instance> instanceList = substractIpAddresses(service, ephemeral, ips);
 
         Instances instances = new Instances();
@@ -671,6 +675,11 @@ public class ServiceManager implements RecordListener<Service> {
      * @param ips       instances
      * @return instance list after operation
      * @throws NacosException nacos exception
+     *
+     * 删除的逻辑：
+     * 其实就是将之前的instance弄出来，然后放到这个instanceMap中，然后遍历这个要删除的instance集合，
+     * 如果是删除action的话，就从instanceMap中移除这个DatumKey，这个key就是这个样子 ip:port:unknown:{cluster}。
+     * 到最后这个instanceMap就剩下抛去我们要下线的instance了
      */
     public List<Instance> updateIpAddresses(Service service, String action, boolean ephemeral, Instance... ips)
             throws NacosException {
@@ -803,7 +812,7 @@ public class ServiceManager implements RecordListener<Service> {
         putService(service);
         // 初始化service内部健康检测任务
         service.init();
-        // 给nacos集合中的当前服务的持久实例、临时实例添加监听
+        // 给nacos集合中的当前服务的 [持久实例、临时实例] 添加监听，这里监听要执行的方法主要就是更新本地注册表
         consistencyService
                 .listen(KeyBuilder.buildInstanceListKey(service.getNamespaceId(), service.getName(), true), service);
         consistencyService

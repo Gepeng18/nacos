@@ -233,6 +233,7 @@ public class Cluster extends com.alibaba.nacos.api.naming.pojo.Cluster implement
 
     /**
      * Update instance list.
+     * 更新本地的cluster的instance实例
      *
      * @param ips       instance list
      * @param ephemeral whether these instances are ephemeral
