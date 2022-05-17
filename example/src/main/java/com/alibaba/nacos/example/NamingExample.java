@@ -50,8 +50,18 @@ public class NamingExample {
         // 再下线
         naming.deregisterInstance("nacos.test.3", "2.2.2.2", 9999, "DEFAULT");
 
+        /**
+         * nacos支持两种服务发现方式，一种是直接去nacos服务端拉取某个服务的实例列表，就像eureka那样定时去拉取注册表信息，
+         * 另一种是服务订阅的方式，就是订阅某个服务，然后这个服务下面的实例列表一旦发生变化，nacos服务端就会使用udp的方式通知客户端，并将实例列表带过去，
+         * 这里是第一种
+         */
         System.out.println(naming.getAllInstances("nacos.test.3"));
 
+        /**
+         * NamingService的getAllInstances 方法可以作为服务发现获取服务实例列表的方式，
+         * 其实nacos还支持订阅方式，通过提供订阅的服务名称与监听器（listener ）就可以了，
+         * 然后订阅的服务实例信息一旦发生变化，nacos服务端就会通知你这个client，client收到通知后就会调用你这监听器，执行对应的逻辑。
+         */
         naming.subscribe("nacos.test.3", new EventListener() {
             @Override
             public void onEvent(Event event) {

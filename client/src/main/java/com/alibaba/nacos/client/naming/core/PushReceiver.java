@@ -34,6 +34,7 @@ import static com.alibaba.nacos.client.utils.LogUtils.NAMING_LOGGER;
 
 /**
  * Push receiver.
+ * Nacos client
  *
  * @author xuanyin
  */
@@ -51,6 +52,7 @@ public class PushReceiver implements Runnable, Closeable {
 
     private volatile boolean closed = false;
 
+    // 在实例化的时候，开启一个udpSocket，然后整了一个调度线程池，将自己作为一个任务扔进去了
     public PushReceiver(HostReactor hostReactor) {
         try {
             this.hostReactor = hostReactor;
@@ -65,7 +67,7 @@ public class PushReceiver implements Runnable, Closeable {
                     return thread;
                 }
             });
-            //异步执行当前PushReceiver任务,即执行其run()
+            // 异步执行当前PushReceiver任务,即执行其run()
             this.executorService.execute(this);
         } catch (Exception e) {
             NAMING_LOGGER.error("[NA] init udp socket failed", e);
@@ -82,7 +84,7 @@ public class PushReceiver implements Runnable, Closeable {
                 byte[] buffer = new byte[UDP_MSS];
                 DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
 
-                // 接收来自Nacos Server的UDP推送的数据，并封装到packet数据包中
+                // do 接收来自Nacos Server的UDP推送的数据，并封装到packet数据包中
                 udpSocket.receive(packet);
 
                 // 将数据包中的数据解码为JSON串
@@ -94,7 +96,7 @@ public class PushReceiver implements Runnable, Closeable {
                 String ack;
                 // 根据不同的数据类型,形成不同的ack
                 if ("dom".equals(pushPacket.type) || "service".equals(pushPacket.type)) {
-                    // 将来自于Nacos Server的发生变更的Service更新到当前Nacos Client的本地注册表
+                    // do 将来自于Nacos Server的发生变更的Service更新到当前Nacos Client的本地注册表
                     hostReactor.processServiceJson(pushPacket.data);
 
                     // send ack to server
@@ -111,7 +113,7 @@ public class PushReceiver implements Runnable, Closeable {
                             + "\", \"data\":" + "\"\"}";
                 }
 
-                // 向推送数据的Nacos Server进行响应 （UDP推送）
+                // do 向推送数据的Nacos Server进行响应 （UDP推送）
                 udpSocket.send(new DatagramPacket(ack.getBytes(UTF_8), ack.getBytes(UTF_8).length,
                         packet.getSocketAddress()));
             } catch (Exception e) {

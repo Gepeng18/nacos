@@ -643,6 +643,10 @@ public class ServiceManager implements RecordListener<Service> {
         consistencyService.put(key, instances);
     }
 
+    /**
+     * 其实就是先根据namespace从serviceMap中获取对应的service，
+     * 接着根据cluster从service的clusterMap中获取对应cluster的instance集合，然后再遍历比对ip与port。
+     */
     public Instance getInstance(String namespaceId, String serviceName, String cluster, String ip, int port) {
         Service service = getService(namespaceId, serviceName);
         if (service == null) {
@@ -807,6 +811,10 @@ public class ServiceManager implements RecordListener<Service> {
         serviceMap.get(service.getNamespaceId()).put(service.getName(), service);
     }
 
+    /**
+     * 注册
+     * 1、异步修改本地注册表
+     */
     private void putServiceAndInit(Service service) throws NacosException {
         // 将service写入注册表
         putService(service);

@@ -85,13 +85,13 @@ public class ClientBeatProcessor implements Runnable {
                 if (Loggers.EVT_LOG.isDebugEnabled()) {
                     Loggers.EVT_LOG.debug("[CLIENT-BEAT] refresh beat: {}", rsInfo.toString());
                 }
-                // 修改最后心跳时间戳
+                // do 修改最后心跳时间戳，这个就是续约
                 instance.setLastBeat(System.currentTimeMillis());
                 // 修改该instance的健康状态
                 // 当instance被标记时,即其marked为true时,其是一个持久实例
                 if (!instance.isMarked()) {
                     // instance的healthy才是临时实例健康状态的表示
-                    // 若当前instance健康状态为false,但本次是其发送的心跳,说明这个instance“起死回生”了
+                    // do 若当前instance健康状态为false,但本次是其发送的心跳,说明这个instance“起死回生”了
                     // 我们需要将其health变为true
                     if (!instance.isHealthy()) {
                         instance.setHealthy(true);
@@ -101,6 +101,7 @@ public class ClientBeatProcessor implements Runnable {
                                         UtilsAndCommons.LOCALHOST_SITE);
                         // 发布服务变更事件，理论上不发也行，因为client的instance可以定时更新，但是发布了后，会让其他instance快速感知
                         // 对后续分析UDP通信非常重要
+                        // 健康状态改变了，会引起它 将新的instance信息推送到那堆服务订阅者客户端上
                         getPushService().serviceChanged(service);
                     }
                 }

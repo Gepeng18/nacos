@@ -309,15 +309,25 @@ public class NacosNamingService implements NamingService {
         return getAllInstances(serviceName, Constants.DEFAULT_GROUP, clusters, subscribe);
     }
 
+    /**
+     * 其实不订阅的服务发现非常简单，就是客户端发起请求直接去服务端拉取订阅的服务实例列表就可以了，
+     * 如果是订阅的话，客户端先去服务端拉取订阅服务列表，并且客户端带上自己本地的udp端口给服务端，
+     * 服务端会根据udp与客户端版本判断能不能订阅，能的话服务端根据订阅信息生成一个PushClient放到一个clientMap中，
+     * 到时候服务实例信息改变的时候，就会从这个clientMap 取到这个PushClient信息，然后进行推送。
+     * 客户端向服务端拉取完服务列表后，接着生成一个更新任务，隔一段时间去服务端刷新下数据啥的。
+     */
     @Override
     public List<Instance> getAllInstances(String serviceName, String groupName, List<String> clusters,
             boolean subscribe) throws NacosException {
 
+        // 是否订阅
         ServiceInfo serviceInfo;
+        // getAllInstances() 默认是订阅的
         if (subscribe) {
             serviceInfo = hostReactor.getServiceInfo(NamingUtils.getGroupedName(serviceName, groupName),
                     StringUtils.join(clusters, ","));
         } else {
+            // 非订阅，则直接请求Server接口，Server从注册表中拿数据后返回给客户端
             serviceInfo = hostReactor
                     .getServiceInfoDirectlyFromServer(NamingUtils.getGroupedName(serviceName, groupName),
                             StringUtils.join(clusters, ","));
@@ -481,8 +491,10 @@ public class NacosNamingService implements NamingService {
     @Override
     public void subscribe(String serviceName, String groupName, List<String> clusters, EventListener listener)
             throws NacosException {
-        eventDispatcher.addListener(hostReactor
-                        .getServiceInfo(NamingUtils.getGroupedName(serviceName, groupName), StringUtils.join(clusters, ",")),
+        // 事件分发器，添加listener
+        eventDispatcher.addListener(
+            // 从hostReactor获取serviceInfo
+            hostReactor.getServiceInfo(NamingUtils.getGroupedName(serviceName, groupName), StringUtils.join(clusters, ",")),
                 StringUtils.join(clusters, ","), listener);
     }
 

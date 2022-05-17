@@ -42,6 +42,10 @@ import static com.alibaba.nacos.client.utils.LogUtils.NAMING_LOGGER;
 
 /**
  * Event dispatcher.
+ * 事件分发器，
+ * 其实就是nacos服务端通知过来之后，client先会跟本地缓存的服务实例信息做一下比较，如果发生了变化，
+ * 就会整一个服务实例变化的通知给 EventDispatcher 组件，这个组件就会根据服务信息，
+ * 然后找到对应的listener，进行执行，它其实就是管着 listener 注册与调用listener 执行调用的。
  *
  * @author xuanyin
  */
@@ -77,6 +81,7 @@ public class EventDispatcher implements Closeable {
 
     /**
      * Add listener.
+     * 将订阅服务信息与listener 放到一个map
      *
      * @param serviceInfo service info
      * @param clusters    clusters
@@ -94,11 +99,14 @@ public class EventDispatcher implements Closeable {
         List<EventListener> observers = Collections.synchronizedList(new ArrayList<EventListener>());
         observers.add(listener);
 
+        // 往观察者map中塞入
         observers = observerMap.putIfAbsent(ServiceInfo.getKey(serviceInfo.getName(), clusters), observers);
         if (observers != null) {
+            // 如果存在，直接塞到observers这个集合中
             observers.add(listener);
         }
 
+        // 触发了一次服务改变的事件
         serviceChanged(serviceInfo);
     }
 
@@ -150,6 +158,7 @@ public class EventDispatcher implements Closeable {
             return;
         }
 
+        // “改变队列-”
         changedServices.add(serviceInfo);
     }
 
@@ -162,6 +171,9 @@ public class EventDispatcher implements Closeable {
         NAMING_LOGGER.info("{} do shutdown stop", className);
     }
 
+    /**
+     * 然后这个EventDispatcher 组件中有个Notifier 的任务会不断从这个队列中获取serviceInfo ，通知那些订阅这个服务的listener
+     */
     private class Notifier implements Runnable {
 
         @Override
@@ -170,8 +182,7 @@ public class EventDispatcher implements Closeable {
 
                 ServiceInfo serviceInfo = null;
                 try {
-                    // 其他代码中，每当从server发现与本地注册表数据不一致，则将serviceInfo加入changedServices中
-                    // addListener 也会将serviceInfo加入changedServices中
+                    // do Nacos client 每当从server发现与本地注册表数据不一致，则将serviceInfo加入changedServices中
                     serviceInfo = changedServices.poll(5, TimeUnit.MINUTES);
                 } catch (Exception ignore) {
                 }
@@ -180,7 +191,7 @@ public class EventDispatcher implements Closeable {
                     continue;
                 }
 
-                // 从observerMap中拿到相应的监听者，执行监听者的onEvent方法
+                // do 从observerMap中拿到相应的监听者，执行监听者的onEvent方法
                 try {
                     List<EventListener> listeners = observerMap.get(serviceInfo.getKey());
 

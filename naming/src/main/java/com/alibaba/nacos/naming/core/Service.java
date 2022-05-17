@@ -129,7 +129,7 @@ public class Service extends com.alibaba.nacos.api.naming.pojo.Service implement
      * @param rsInfo metrics info of server
      */
     public void processClientBeat(final RsInfo rsInfo) {
-        // 创建一个处理器,其是一个任务
+        // 创建一个处理器,其实是一个任务
         ClientBeatProcessor clientBeatProcessor = new ClientBeatProcessor();
         clientBeatProcessor.setService(this);
         clientBeatProcessor.setRsInfo(rsInfo);
@@ -312,7 +312,7 @@ public class Service extends com.alibaba.nacos.api.naming.pojo.Service implement
      * 这个任务其实就是扫描这个service里面长时间没有心跳的instance（服务实例），然后进行健康状态改变，服务下线
      */
     public void init() {
-        // 开启定时清除过期instance任务
+        // 开启定时清除过期instance任务（5s钟一次）
         HealthCheckReactor.scheduleCheck(clientBeatCheckTask);
         // 开启了当前service所包含的所有cluster的健康检测任务
         for (Map.Entry<String, Cluster> entry : clusterMap.entrySet()) {

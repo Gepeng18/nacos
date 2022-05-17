@@ -116,6 +116,7 @@ public class HostReactor implements Closeable {
     }
 
     public synchronized ScheduledFuture<?> addTask(UpdateTask task) {
+        // 延迟1秒执行
         return executor.schedule(task, DEFAULT_DELAY, TimeUnit.MILLISECONDS);
     }
 
@@ -286,6 +287,7 @@ public class HostReactor implements Closeable {
 
     public ServiceInfo getServiceInfoDirectlyFromServer(final String serviceName, final String clusters)
             throws NacosException {
+        // 这里直接是调用了serverProxy组件的queryList 方法，需要注意的是这个udp端口是0 ，因为咱们这里是不订阅的，这个upd是给订阅的接收通知用的
         String result = serverProxy.queryList(serviceName, clusters, 0, false);
         if (StringUtils.isNotEmpty(result)) {
             return JacksonUtils.toObj(result, ServiceInfo.class);
@@ -298,6 +300,12 @@ public class HostReactor implements Closeable {
      * 2、如果本地沒有这个服务，就创建空服务添加到本地注册表中，并且从Server拉取 (/v1/ns/instance/list)
      * 3、如果发现本地该服务正在更新，则等一会后直接从本地注册表中获即可
      * 4、启动一个定时任务，定期更新本地注册表,从Server拉取  (/v1/ns/instance/list)
+     *
+     * 主动拉取：
+     * 主要就是看看本地有没有这个serviceInfo ，如果没有的话，就创建一个，并且立马向服务端拉取这个服务实例信息，
+     * 另外带着订阅。然后就是将这个订阅搞个任务出来，定时的去服务端拉拉看看，这个任务就是防止某个nacos服务端实例挂了
+     * 导致不能及时通知了，它时不时的去服务端刷新下订阅信息，就算是某个nacos 服务挂掉了，它也可以请求其他的nacos服务继续拉取实例，
+     * 同时也告诉下nacos 服务端我这个客户端还活着，维护着一个连接那种感觉。
      */
     public ServiceInfo getServiceInfo(final String serviceName, final String clusters) {
 
@@ -308,14 +316,13 @@ public class HostReactor implements Closeable {
             return failoverReactor.getService(key);
         }
 
-        // 从当前client的本地注册表中获取当前服务
+        // do 从当前client的本地注册表中获取当前服务
         ServiceInfo serviceObj = getServiceInfo0(serviceName, clusters);
 
         // 第一次时，本地注册表中没有该服务
         if (null == serviceObj) {
             // 创建一个空的服务(没有任何提供者实例instance的ServiceInfo)
             serviceObj = new ServiceInfo(serviceName, clusters);
-
             serviceInfoMap.put(serviceObj.getKey(), serviceObj);
 
             // updatingMap是一个临时缓存,其主要是使用这个缓存map的key,
@@ -323,7 +330,7 @@ public class HostReactor implements Closeable {
             // 只要有服务名称出现在这个缓存map中,就表示当前这个服务正在被更新
             // 准备要更新serviceName的服务了,就先将其名称写入到这个临时缓存map
             updatingMap.put(serviceName, new Object());
-            // 更新本地注册表中的serviceName的服务
+            // do 更新本地注册表中的serviceName的服务（立即发送请求去客户端端获取）
             updateServiceNow(serviceName, clusters);
             // 更新完毕,将该serviceName服务从临时缓存map中干掉
             updatingMap.remove(serviceName);
@@ -344,7 +351,7 @@ public class HostReactor implements Closeable {
             }
         }
 
-        // 启动一个定时任务，定时更新本地注册表中的当前服务
+        // do 启动一个定时任务，定时更新本地注册表中的当前服务
         scheduleUpdateIfAbsent(serviceName, clusters);
 
         return serviceInfoMap.get(serviceObj.getKey());
@@ -491,13 +498,15 @@ public class HostReactor implements Closeable {
                 } else {
                     // if serviceName already updated by push, we should not override it
                     // since the push data may be different from pull through force push
-                    // 这里只是获取，但是没有接受返回值，类似于预热
+                    // 这里只是获取，但是没有接受返回值，这个方法就是告诉服务端要订阅哪个服务
                     refreshOnly(serviceName, clusters);
                 }
 
                 // 将来自于注册表的这个最后访问时间更新到当前client的缓存
                 lastRefTime = serviceObj.getLastRefTime();
 
+                // 如果eventDispatcher 组件没有订阅这个服务并且 futureMap（任务集合）里面没有这个的话，就说明被任务被停了，
+                // 这个任务直接return就可以
                 if (!eventDispatcher.isSubscribed(serviceName, clusters) && !futureMap
                         .containsKey(ServiceInfo.getKey(serviceName, clusters))) {
                     // abort the update task
@@ -508,6 +517,7 @@ public class HostReactor implements Closeable {
                     incFailCount();
                     return;
                 }
+                // 计算下延迟时间，然后放到调度线程池中执行，普通情况延迟10s，失败的话就多延迟会，但是不会超过60s。
                 delayTime = serviceObj.getCacheMillis();
                 resetFailCount();
             } catch (Throwable e) {

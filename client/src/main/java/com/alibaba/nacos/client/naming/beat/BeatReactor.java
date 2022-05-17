@@ -92,6 +92,7 @@ public class BeatReactor implements Closeable {
         if ((existBeat = dom2Beat.remove(key)) != null) {
             existBeat.setStopped(true);
         }
+        // 这个map其实就是防止任务重复的
         dom2Beat.put(key, beatInfo);
         // 循环执行心跳发送任务
         executorService.schedule(new BeatTask(beatInfo), beatInfo.getPeriod(), TimeUnit.MILLISECONDS);
@@ -172,7 +173,7 @@ public class BeatReactor implements Closeable {
             }
             long nextTime = beatInfo.getPeriod();
             try {
-                // 发送心跳，底层调用httpClient
+                // do 发送心跳，底层调用httpClient
                 JsonNode result = serverProxy.sendBeat(beatInfo, BeatReactor.this.lightBeatEnabled);
                 // 服务端可以把心跳给改了
                 long interval = result.get("clientBeatInterval").asLong();
@@ -202,7 +203,7 @@ public class BeatReactor implements Closeable {
                     instance.setInstanceId(instance.getInstanceId());
                     instance.setEphemeral(true);
                     try {
-                        // 向server发送注册请求
+                        // do 向server发送注册请求
                         serverProxy.registerService(beatInfo.getServiceName(),
                                 NamingUtils.getGroupName(beatInfo.getServiceName()), instance);
                     } catch (Exception ignore) {
@@ -213,7 +214,7 @@ public class BeatReactor implements Closeable {
                         JacksonUtils.toJson(beatInfo), ex.getErrCode(), ex.getErrMsg());
 
             }
-            // 又启动一次定时任务
+            // do 又启动一次定时任务
             executorService.schedule(new BeatTask(beatInfo), nextTime, TimeUnit.MILLISECONDS);
         }
     }

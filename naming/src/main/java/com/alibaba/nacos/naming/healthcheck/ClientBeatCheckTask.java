@@ -116,10 +116,11 @@ public class ClientBeatCheckTask implements Runnable {
                 return;
             }
 
+            // 删除过时的服务，默认是30s没有心跳
             // then remove obsolete instances:
             for (Instance instance : instances) {
 
-                // 若当前instance被标记了,说明其为过期的持久实例,直接跳过
+                // 若当前instance被标记了,说明其为持久实例,直接跳过
                 if (instance.isMarked()) {
                     continue;
                 }
@@ -129,7 +130,7 @@ public class ClientBeatCheckTask implements Runnable {
                     // delete instance
                     Loggers.SRV_LOG.info("[AUTO-DELETE-IP] service: {}, ip: {}", service.getName(),
                             JacksonUtils.toJson(instance));
-                    // 清除instance
+                    // 清除instance (组装了个http请求，然后向本机发送服务下线请求)
                     deleteIp(instance);
                 }
             }

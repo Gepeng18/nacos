@@ -374,7 +374,7 @@ public class InstanceController {
         checkServiceNameFormat(serviceName);
         Loggers.SRV_LOG.debug("[CLIENT-BEAT] full arguments: beat: {}, serviceName: {}", clientBeat, serviceName);
 
-        //从注册表中获取当前发送请求的client对应的instance
+        // do 从注册表中获取当前发送请求的client对应的instance
         Instance instance = serviceManager.getInstance(namespaceId, serviceName, clusterName, ip, port);
 
         // 处理注册表中不存在该client的instance的情况
@@ -422,6 +422,9 @@ public class InstanceController {
         service.processClientBeat(clientBeat);
 
         result.put(CommonParams.CODE, NamingResponseCode.OK);
+        // 它往这个返回值中塞了clientBeatInterval 与lightBeatEnabled 参数值，这clientBeatInterval 就是心跳间隔，
+        // lightBeatEnabled 就是带不带beatInfo，这时候lightBeatEnabled 返回的就是true了，也就是下次不带了，
+        // 看来这个心跳间隔是可以随时调整的，而且不用动服务，在控制台修改下某个实例的元数据就可以了
         if (instance.containsMetadata(PreservedMetadataKeys.HEART_BEAT_INTERVAL)) {
             result.put(SwitchEntry.CLIENT_BEAT_INTERVAL, instance.getInstanceHeartBeatInterval());
         }
@@ -597,6 +600,9 @@ public class InstanceController {
 
         // now try to enable the push
         try {
+            // 判断upd端口与这个客户端版本，看看适不适合推送，当客户端为主动拉取时(非订阅)，udp端口是0，不适合推送
+            // 这里和 com.alibaba.nacos.client.naming.NacosNamingService#getAllInstances(java.lang.String, java.lang.String, java.util.List<java.lang.String>, boolean)
+            // 结合在一起看
             if (udpPort > 0 && pushService.canEnablePush(agent)) {
 
                 // 创建当前发出订阅请求的Nacos client的UDP Client
@@ -631,6 +637,7 @@ public class InstanceController {
         List<Instance> srvedIPs;
 
         //获取到当前服务的所有实例，包含所有持久/临时实例
+        // 先找到cluster，再根据cluster获取instance实例
         srvedIPs = service.srvIPs(Arrays.asList(StringUtils.split(clusters, ",")));
 
         // filter ips using selector:

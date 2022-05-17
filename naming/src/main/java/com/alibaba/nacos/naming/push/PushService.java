@@ -91,6 +91,8 @@ public class PushService implements ApplicationContextAware, ApplicationListener
         try {
             udpSocket = new DatagramSocket();
 
+            // 启动一个线程，执行Receiver 任务，这个任务其实就是接收客户端ack的，
+            // 你给客户端推送过去了最新的实例信息，然后客户端收到之后也得给你个ack
             Receiver receiver = new Receiver();
 
             Thread inThread = new Thread(receiver);
@@ -98,8 +100,10 @@ public class PushService implements ApplicationContextAware, ApplicationListener
             inThread.setName("com.alibaba.nacos.naming.push.receiver");
             inThread.start();
 
+            // 20s执行一次,清理下僵尸客户端，就是处理掉几秒没刷新订阅的客户端，默认是10s
             GlobalExecutor.scheduleRetransmitter(() -> {
                 try {
+                    // 移除僵尸客户端
                     removeClientIfZombie();
                 } catch (Throwable e) {
                     Loggers.PUSH.warn("[NACOS-PUSH] failed to remove client zombie");
@@ -181,7 +185,7 @@ public class PushService implements ApplicationContextAware, ApplicationListener
                             client.getServiceName(), client.getAddrStr(), client.getAgent(),
                             (ackEntry == null ? null : ackEntry.key));
 
-                    // UDP通信
+                    // UDP通信，推送给所有订阅这个服务的UDP client
                     udpPush(ackEntry);
                 }
             } catch (Exception e) {
@@ -229,8 +233,10 @@ public class PushService implements ApplicationContextAware, ApplicationListener
 
     /**
      * Add push target client.
-     *
      * @param client push target client
+     * 这个方法就是先生成一个serviceKey ，然后去clientMap中获取，如果没有这个clients话就创建塞到这个clientMap中，
+     * 最后就是将PushClient 转成字符串当作key，去clients这个map中获取，如果没有，就添加进去，如果有的话就只是刷新一下旧的。
+     *
      */
     public void addClient(PushClient client) {
         // client is stored by key 'serviceName' because notify event is driven by serviceName change
@@ -396,6 +402,7 @@ public class PushService implements ApplicationContextAware, ApplicationListener
      * @param service service
      */
     public void serviceChanged(Service service) {
+        // 合并一些变更时间以减少推送频率
         // merge some change events to reduce the push frequency:
         if (futureMap
                 .containsKey(UtilsAndCommons.assembleFullServiceName(service.getNamespaceId(), service.getName()))) {
@@ -639,7 +646,7 @@ public class PushService implements ApplicationContextAware, ApplicationListener
             udpSendTimeMap.put(ackEntry.key, System.currentTimeMillis());
 
             Loggers.PUSH.info("send udp packet: " + ackEntry.key);
-            // 发送UDP，将ackEntry中的data经过编码和压缩的数据以UDP发送
+            // do 发送UDP，将ackEntry中的data经过编码和压缩的数据以UDP发送
             udpSocket.send(ackEntry.origin);
 
             // 这里感觉应该缺少了移除的逻辑，因为如果不移除，后面重传器会一直重传

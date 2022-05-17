@@ -27,7 +27,7 @@ import java.util.Properties;
  * @author nkorange
  */
 public class NamingFactory {
-    
+
     /**
      * Create a new naming service.
      *
@@ -45,7 +45,7 @@ public class NamingFactory {
             throw new NacosException(NacosException.CLIENT_INVALID_PARAM, e);
         }
     }
-    
+
     /**
      * Create a new naming service.
      *
@@ -55,6 +55,9 @@ public class NamingFactory {
      */
     public static NamingService createNamingService(Properties properties) throws NacosException {
         try {
+            /**
+             *  @see com.alibaba.nacos.client.naming.NacosNamingService#NacosNamingService(String)
+             */
             Class<?> driverImplClass = Class.forName("com.alibaba.nacos.client.naming.NacosNamingService");
             Constructor constructor = driverImplClass.getConstructor(Properties.class);
             NamingService vendorImpl = (NamingService) constructor.newInstance(properties);
