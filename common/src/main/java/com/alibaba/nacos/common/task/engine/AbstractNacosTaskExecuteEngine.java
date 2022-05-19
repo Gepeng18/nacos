@@ -37,42 +37,44 @@ import java.util.concurrent.locks.ReentrantLock;
  * @author xiweng.yy
  */
 public abstract class AbstractNacosTaskExecuteEngine<T extends NacosTask> implements NacosTaskExecuteEngine<T> {
-    
+
     private final Logger log;
-    
+
     private final ScheduledExecutorService processingExecutor;
-    
+
     private final ConcurrentHashMap<Object, NacosTaskProcessor> taskProcessors = new ConcurrentHashMap<Object, NacosTaskProcessor>();
-    
+
     protected final ConcurrentHashMap<Object, T> tasks;
-    
+
     protected final ReentrantLock lock = new ReentrantLock();
-    
+
     private NacosTaskProcessor defaultTaskProcessor;
-    
+
     public AbstractNacosTaskExecuteEngine(String name) {
         this(name, 32, null, 100L);
     }
-    
+
     public AbstractNacosTaskExecuteEngine(String name, Logger logger) {
         this(name, 32, logger, 100L);
     }
-    
+
     public AbstractNacosTaskExecuteEngine(String name, Logger logger, long processInterval) {
         this(name, 32, logger, processInterval);
     }
-    
+
     public AbstractNacosTaskExecuteEngine(String name, int initCapacity, Logger logger) {
         this(name, initCapacity, logger, 100L);
     }
-    
+
     public AbstractNacosTaskExecuteEngine(String name, int initCapacity, Logger logger, long processInterval) {
         this.log = null != logger ? logger : LoggerFactory.getLogger(AbstractNacosTaskExecuteEngine.class.getName());
+        /// 初始大小32
         tasks = new ConcurrentHashMap<Object, T>(initCapacity);
         processingExecutor = ExecutorFactory.newSingleScheduledExecutorService(new NameThreadFactory(name));
+        /// 100ms 执行一次
         processingExecutor.scheduleWithFixedDelay(new ProcessRunnable(), processInterval, processInterval, TimeUnit.MILLISECONDS);
     }
-    
+
     @Override
     public int size() {
         lock.lock();
@@ -82,7 +84,7 @@ public abstract class AbstractNacosTaskExecuteEngine<T extends NacosTask> implem
             lock.unlock();
         }
     }
-    
+
     @Override
     public boolean isEmpty() {
         lock.lock();
@@ -92,32 +94,32 @@ public abstract class AbstractNacosTaskExecuteEngine<T extends NacosTask> implem
             lock.unlock();
         }
     }
-    
+
     @Override
     public void addProcessor(Object key, NacosTaskProcessor taskProcessor) {
         taskProcessors.putIfAbsent(key, taskProcessor);
     }
-    
+
     @Override
     public void removeProcessor(Object key) {
         taskProcessors.remove(key);
     }
-    
+
     @Override
     public NacosTaskProcessor getProcessor(Object key) {
         return taskProcessors.containsKey(key) ? taskProcessors.get(key) : defaultTaskProcessor;
     }
-    
+
     @Override
     public Collection<Object> getAllProcessorKey() {
         return taskProcessors.keySet();
     }
-    
+
     @Override
     public void setDefaultTaskProcessor(NacosTaskProcessor defaultTaskProcessor) {
         this.defaultTaskProcessor = defaultTaskProcessor;
     }
-    
+
     @Override
     public T removeTask(Object key) {
         lock.lock();
@@ -132,7 +134,7 @@ public abstract class AbstractNacosTaskExecuteEngine<T extends NacosTask> implem
             lock.unlock();
         }
     }
-    
+
     @Override
     public Collection<Object> getAllTaskKeys() {
         Collection<Object> keys = new HashSet<Object>();
@@ -144,26 +146,27 @@ public abstract class AbstractNacosTaskExecuteEngine<T extends NacosTask> implem
         }
         return keys;
     }
-    
+
     @Override
     public void shutdown() throws NacosException {
         processingExecutor.shutdown();
     }
-    
+
     protected Logger getEngineLog() {
         return log;
     }
-    
+
     /**
      * process tasks in execute engine.
      */
     protected abstract void processTasks();
-    
+
     private class ProcessRunnable implements Runnable {
-    
+
         @Override
         public void run() {
             try {
+                // 处理任务
                 AbstractNacosTaskExecuteEngine.this.processTasks();
             } catch (Throwable e) {
                 log.error(e.toString(), e);

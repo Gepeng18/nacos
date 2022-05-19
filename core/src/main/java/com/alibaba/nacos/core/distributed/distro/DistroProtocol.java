@@ -41,17 +41,17 @@ import org.springframework.stereotype.Component;
  */
 @Component
 public class DistroProtocol {
-    
+
     private final ServerMemberManager memberManager;
-    
+
     private final DistroComponentHolder distroComponentHolder;
-    
+
     private final DistroTaskEngineHolder distroTaskEngineHolder;
-    
+
     private final DistroConfig distroConfig;
-    
+
     private volatile boolean loadCompleted = false;
-    
+
     public DistroProtocol(ServerMemberManager memberManager, DistroComponentHolder distroComponentHolder,
             DistroTaskEngineHolder distroTaskEngineHolder, DistroConfig distroConfig) {
         this.memberManager = memberManager;
@@ -60,14 +60,14 @@ public class DistroProtocol {
         this.distroConfig = distroConfig;
         startVerifyTask();
     }
-    
+
     private void startVerifyTask() {
         DistroCallback loadCallback = new DistroCallback() {
             @Override
             public void onSuccess() {
                 loadCompleted = true;
             }
-            
+
             @Override
             public void onFailed(Throwable throwable) {
                 loadCompleted = false;
@@ -78,11 +78,11 @@ public class DistroProtocol {
         GlobalExecutor.submitLoadDataTask(
                 new DistroLoadDataTask(memberManager, distroComponentHolder, distroConfig, loadCallback));
     }
-    
+
     public boolean isLoadCompleted() {
         return loadCompleted;
     }
-    
+
     /**
      * Start to sync by configured delay.
      *
@@ -92,7 +92,7 @@ public class DistroProtocol {
     public void sync(DistroKey distroKey, DataOperation action) {
         sync(distroKey, action, distroConfig.getSyncDelayMillis());
     }
-    
+
     /**
      * Start to sync data to all remote server.
      *
@@ -100,17 +100,21 @@ public class DistroProtocol {
      * @param action    the action of data operation
      */
     public void sync(DistroKey distroKey, DataOperation action, long delay) {
+        /// 遍历所有的成员，抛去自己
         for (Member each : memberManager.allMembersWithoutSelf()) {
+            // 重新封装DistroKey ，然后将对方的地址封装进去
             DistroKey distroKeyWithTarget = new DistroKey(distroKey.getResourceKey(), distroKey.getResourceType(),
                     each.getAddress());
+            // 封装延时task
             DistroDelayTask distroDelayTask = new DistroDelayTask(distroKeyWithTarget, action, delay);
+            /// key是distroKeyWithTarget  ， value是distroDelayTask
             distroTaskEngineHolder.getDelayTaskExecuteEngine().addTask(distroKeyWithTarget, distroDelayTask);
             if (Loggers.DISTRO.isDebugEnabled()) {
                 Loggers.DISTRO.debug("[DISTRO-SCHEDULE] {} to {}", distroKey, each.getAddress());
             }
         }
     }
-    
+
     /**
      * Query data from specified server.
      *
@@ -130,7 +134,7 @@ public class DistroProtocol {
         }
         return transportAgent.getData(distroKey, distroKey.getTargetServer());
     }
-    
+
     /**
      * Receive synced distro data, find processor to process.
      *
@@ -146,7 +150,7 @@ public class DistroProtocol {
         }
         return dataProcessor.processData(distroData);
     }
-    
+
     /**
      * Receive verify data, find processor to process.
      *
@@ -162,7 +166,7 @@ public class DistroProtocol {
         }
         return dataProcessor.processVerifyData(distroData);
     }
-    
+
     /**
      * Query data of input distro key.
      *
@@ -178,7 +182,7 @@ public class DistroProtocol {
         }
         return distroDataStorage.getDistroData(distroKey);
     }
-    
+
     /**
      * Query all datum snapshot.
      *

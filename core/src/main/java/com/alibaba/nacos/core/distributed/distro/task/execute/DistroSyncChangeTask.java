@@ -29,32 +29,41 @@ import com.alibaba.nacos.core.utils.Loggers;
  * @author xiweng.yy
  */
 public class DistroSyncChangeTask extends AbstractDistroExecuteTask {
-    
+
     private final DistroComponentHolder distroComponentHolder;
-    
+
     public DistroSyncChangeTask(DistroKey distroKey, DistroComponentHolder distroComponentHolder) {
         super(distroKey);
         this.distroComponentHolder = distroComponentHolder;
     }
-    
+
     @Override
     public void run() {
         Loggers.DISTRO.info("[DISTRO-START] {}", toString());
         try {
+            // 资源类型
             String type = getDistroKey().getResourceType();
+            // 这个要去DistroHttpRegistry#doRegister 方法去看，因为是在这个方法里面向compont注册的
+            // 获取到真实数据，不过这个数据是被序列化了的
             DistroData distroData = distroComponentHolder.findDataStorage(type).getDistroData(getDistroKey());
+            // type是change
             distroData.setType(DataOperation.CHANGE);
+            // 获取通信组件
+            //进行发送数据
             boolean result = distroComponentHolder.findTransportAgent(type).syncData(distroData, getDistroKey().getTargetServer());
+            // 如果失败
             if (!result) {
+                // 处理失败的task
                 handleFailedTask();
             }
             Loggers.DISTRO.info("[DISTRO-END] {} result: {}", toString(), result);
         } catch (Exception e) {
             Loggers.DISTRO.warn("[DISTRO] Sync data change failed.", e);
+            // 处理失败的task
             handleFailedTask();
         }
     }
-    
+
     private void handleFailedTask() {
         String type = getDistroKey().getResourceType();
         DistroFailedTaskHandler failedTaskHandler = distroComponentHolder.findFailedTaskHandler(type);
@@ -64,7 +73,7 @@ public class DistroSyncChangeTask extends AbstractDistroExecuteTask {
         }
         failedTaskHandler.retry(getDistroKey(), DataOperation.CHANGE);
     }
-    
+
     @Override
     public String toString() {
         return "DistroSyncChangeTask for " + getDistroKey().toString();

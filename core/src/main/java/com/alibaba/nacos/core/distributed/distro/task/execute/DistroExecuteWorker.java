@@ -34,15 +34,15 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * @author xiweng.yy
  */
 public final class DistroExecuteWorker implements Closeable {
-    
+
     private static final Logger LOGGER = LoggerFactory.getLogger(DistroExecuteWorker.class);
-    
+
     private static final int QUEUE_CAPACITY = 50000;
-    
+
     private final BlockingQueue<Runnable> queue;
-    
+
     private final String name;
-    
+
     private final AtomicBoolean closed;
 
     public DistroExecuteWorker(final int mod, final int total) {
@@ -74,29 +74,30 @@ public final class DistroExecuteWorker implements Closeable {
 
     private void putTask(Runnable task) {
         try {
+            //put任务
             queue.put(task);
         } catch (InterruptedException ire) {
             LOGGER.error(ire.toString(), ire);
         }
     }
-    
+
     public int pendingTaskCount() {
         return queue.size();
     }
-    
+
     /**
      * Worker status.
      */
     public String status() {
         return name + ", pending tasks: " + pendingTaskCount();
     }
-    
+
     @Override
     public void shutdown() throws NacosException {
         queue.clear();
         closed.compareAndSet(false, true);
     }
-    
+
     /**
      * Inner execute worker.
      */
@@ -107,13 +108,17 @@ public final class DistroExecuteWorker implements Closeable {
             setName(name);
         }
 
+        // 执行任务
         @Override
         public void run() {
             while (!closed.get()) {
                 try {
+                    // 1.从队列中取出任务
                     Runnable task = queue.take();
                     long begin = System.currentTimeMillis();
+                    //2.执行任务
                     task.run();
+                    // 任务耗时
                     long duration = System.currentTimeMillis() - begin;
                     if (duration > 1000L) {
                         LOGGER.warn("distro task {} takes {}ms", task, duration);

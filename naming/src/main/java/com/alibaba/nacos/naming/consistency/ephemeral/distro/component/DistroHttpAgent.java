@@ -34,29 +34,30 @@ import java.util.List;
  * @author xiweng.yy
  */
 public class DistroHttpAgent implements DistroTransportAgent {
-    
+
     @Override
     public boolean syncData(DistroData data, String targetServer) {
+        // 发送数据
         byte[] dataContent = data.getContent();
         return NamingProxy.syncData(dataContent, data.getDistroKey().getTargetServer());
     }
-    
+
     @Override
     public void syncData(DistroData data, String targetServer, DistroCallback callback) {
-    
+
     }
-    
+
     @Override
     public boolean syncVerifyData(DistroData verifyData, String targetServer) {
         NamingProxy.syncCheckSums(verifyData.getContent(), targetServer);
         return true;
     }
-    
+
     @Override
     public void syncVerifyData(DistroData verifyData, String targetServer, DistroCallback callback) {
-    
+
     }
-    
+
     @Override
     public DistroData getData(DistroKey key, String targetServer) {
         try {
@@ -73,7 +74,7 @@ public class DistroHttpAgent implements DistroTransportAgent {
             throw new DistroException(String.format("Get data from %s failed.", key.getTargetServer()), e);
         }
     }
-    
+
     @Override
     public DistroData getDatumSnapshot(String targetServer) {
         try {

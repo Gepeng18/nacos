@@ -102,11 +102,14 @@ public class DistroConsistencyServiceImpl implements EphemeralConsistencyService
         GlobalExecutor.submitDistroNotifyTask(notifier);
     }
 
+    // put 往存储器中放入数据
     @Override
     public void put(String key, Record value) throws NacosException {
-        // 往本地里面存储
+        // 1.往本地里面存储 + 内存队列
         onPut(key, value);
+        // 2.集群间同步
         distroProtocol.sync(new DistroKey(key, KeyBuilder.INSTANCE_LIST_KEY_PREFIX), DataOperation.CHANGE,
+            /// 延迟1s ，默认是2000 ms ，然后/2
                 globalConfig.getTaskDispatchPeriod() / 2);
     }
 
@@ -129,11 +132,13 @@ public class DistroConsistencyServiceImpl implements EphemeralConsistencyService
      */
     public void onPut(String key, Record value) {
 
-        // 是否是临时节点
+        // 是否是临时节点, 如果是临时
         if (KeyBuilder.matchEphemeralInstanceListKey(key)) {
+            //封装datum
             Datum<Instances> datum = new Datum<>();
             datum.value = (Instances) value;
             datum.key = key;
+            // 自增
             datum.timestamp.incrementAndGet();
             // dataStore就等同于一个map
             dataStore.put(key, datum);
@@ -141,6 +146,7 @@ public class DistroConsistencyServiceImpl implements EphemeralConsistencyService
 
         // 如果有这个key的监听器的话，就会接着往下走，没有的话就返回
         // 我们在初始化service 的时候是注册了2个监听器的
+        // 如果listener里面没有这个key的话 直接返回 ，这个玩意是发布订阅的东西，进行通知，这个玩意service在初始化的会添加进去
         if (!listeners.containsKey(key)) {
             return;
         }

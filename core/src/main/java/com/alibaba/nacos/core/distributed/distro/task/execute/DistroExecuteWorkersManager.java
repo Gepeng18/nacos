@@ -22,7 +22,7 @@ package com.alibaba.nacos.core.distributed.distro.task.execute;
  * @author xiweng.yy
  */
 public final class DistroExecuteWorkersManager {
-    
+
     private final DistroExecuteWorker[] connectionWorkers;
 
     public DistroExecuteWorkersManager() {
@@ -32,7 +32,7 @@ public final class DistroExecuteWorkersManager {
             connectionWorkers[mod] = new DistroExecuteWorker(mod, workerCount);
         }
     }
-    
+
     private int findWorkerCount() {
         final int coreCount = Runtime.getRuntime().availableProcessors();
         int result = 1;
@@ -41,20 +41,23 @@ public final class DistroExecuteWorkersManager {
         }
         return result;
     }
-    
+
     /**
      * Dispatch task to worker by tag.
      */
     public void dispatch(Object tag, Runnable task) {
+        // 通过hash 取模方式获取worker
         DistroExecuteWorker worker = getWorker(tag);
+        // 使用worker执行
         worker.execute(task);
     }
-    
+
+    // hash %的方式选择哪个worker执行
     private DistroExecuteWorker getWorker(Object tag) {
         int idx = (tag.hashCode() & Integer.MAX_VALUE) % workersCount();
         return connectionWorkers[idx];
     }
-    
+
     /**
      * Get workers status.
      *
