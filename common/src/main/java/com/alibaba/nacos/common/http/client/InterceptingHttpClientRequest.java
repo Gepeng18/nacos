@@ -30,17 +30,17 @@ import java.util.Iterator;
  * @author mai.jh
  */
 public class InterceptingHttpClientRequest implements HttpClientRequest {
-    
+
     private final HttpClientRequest httpClientRequest;
-    
+
     private final Iterator<HttpClientRequestInterceptor> interceptors;
-    
+
     public InterceptingHttpClientRequest(HttpClientRequest httpClientRequest,
             Iterator<HttpClientRequestInterceptor> interceptors) {
         this.httpClientRequest = httpClientRequest;
         this.interceptors = interceptors;
     }
-    
+
     @Override
     public HttpClientResponse execute(URI uri, String httpMethod, RequestHttpEntity requestHttpEntity)
             throws Exception {
@@ -50,9 +50,10 @@ public class InterceptingHttpClientRequest implements HttpClientRequest {
                 return nextInterceptor.intercept();
             }
         }
+        // 提交请求
         return httpClientRequest.execute(uri, httpMethod, requestHttpEntity);
     }
-    
+
     @Override
     public void close() throws IOException {
         httpClientRequest.close();

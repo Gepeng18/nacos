@@ -90,6 +90,7 @@ public class NacosRestTemplate extends AbstractNacosRestTemplate {
     public <T> HttpRestResult<T> get(String url, HttpClientConfig config, Header header, Query query, Type responseType)
             throws Exception {
         RequestHttpEntity requestHttpEntity = new RequestHttpEntity(config, header, query);
+        // 提交get请求
         return execute(url, HttpMethod.GET, requestHttpEntity, responseType);
     }
 
@@ -404,6 +405,7 @@ public class NacosRestTemplate extends AbstractNacosRestTemplate {
             Map<String, String> bodyValues, Type responseType) throws Exception {
         RequestHttpEntity requestHttpEntity = new RequestHttpEntity(config,
                 header.setContentType(MediaType.APPLICATION_FORM_URLENCODED), bodyValues);
+        // 提交post请求
         return execute(url, HttpMethod.POST, requestHttpEntity, responseType);
     }
 
