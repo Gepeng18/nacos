@@ -127,7 +127,7 @@ public class DistroConsistencyServiceImpl implements EphemeralConsistencyService
     /**
      * Put a new record.
      *
-     * @param key   key of record
+     * @param key   key of record  eg. com.alibaba.nacos.naming.iplist.ephemeral.public##DEFAULT_GROUP@@service-provider
      * @param value record
      */
     public void onPut(String key, Record value) {
@@ -373,6 +373,7 @@ public class DistroConsistencyServiceImpl implements EphemeralConsistencyService
 
     public class Notifier implements Runnable {
 
+        // 存储了所有的change的group+serviceName，value没用，不管
         private ConcurrentHashMap<String, String> services = new ConcurrentHashMap<>(10 * 1024);
 
         private BlockingQueue<Pair<String, DataOperation>> tasks = new ArrayBlockingQueue<>(1024 * 1024);
@@ -440,7 +441,7 @@ public class DistroConsistencyServiceImpl implements EphemeralConsistencyService
                         // 通知数据已改变
                         if (action == DataOperation.CHANGE) {
                             // 将key对应的实例列表传过去
-                            // 调用 com.alibaba.nacos.naming.core.Service.onChange
+                            // 调用 com.alibaba.nacos.naming.core.Service.onChange(group+ServiceName, service)
                             listener.onChange(datumKey, dataStore.get(datumKey).value);
                             continue;
                         }

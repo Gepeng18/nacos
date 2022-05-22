@@ -90,10 +90,14 @@ public class EventDispatcher implements Closeable {
     public void addListener(ServiceInfo serviceInfo, String clusters, EventListener listener) {
 
         /**
-         * 服务注册时，会有一个listener被添加进来
-         * EventListener eventListener = event -> NacosWatch.this.publisher
-         * 							.publishEvent(new HeartbeatEvent(NacosWatch.this,
-         * 									nacosWatchIndex.getAndIncrement()));
+         * client端主动订阅
+         *  naming.subscribe("nacos.test.3", new EventListener() {
+         *             @Override
+         *             public void onEvent(Event event) {
+         *                 System.out.println(((NamingEvent) event).getServiceName());
+         *                 System.out.println(((NamingEvent) event).getInstances());
+         *             }
+         *         });
          */
         NAMING_LOGGER.info("[LISTENER] adding " + serviceInfo.getName() + " with " + clusters + " to listener map");
         List<EventListener> observers = Collections.synchronizedList(new ArrayList<EventListener>());

@@ -195,7 +195,7 @@ public class RaftPeerSet extends MemberChangeListener {
             // 如果leader不是选出的那个peer.就把leader设置成选出来的那个peer
             if (!Objects.equals(leader, peer)) {
                 leader = peer;
-                //发布1eader选举完成的事件
+                //发布leader选举完成的事件
                 ApplicationUtils.publishEvent(new LeaderElectFinishedEvent(this, leader, local()));
                 Loggers.RAFT.info("{} has become the LEADER", leader.ip);
             }
