@@ -32,29 +32,30 @@ import com.alibaba.nacos.naming.misc.Loggers;
  * @author xiweng.yy
  */
 public class DistroHttpCombinedKeyExecuteTask implements Runnable {
-    
+
     private final GlobalConfig globalConfig;
-    
+
     private final DistroDelayTaskExecuteEngine distroDelayTaskExecuteEngine;
-    
+
     private final DistroKey singleDistroKey;
-    
+
     private final DataOperation taskAction;
-    
+
     public DistroHttpCombinedKeyExecuteTask(GlobalConfig globalConfig,
             DistroDelayTaskExecuteEngine distroDelayTaskExecuteEngine, DistroKey singleDistroKey,
             DataOperation taskAction) {
         this.globalConfig = globalConfig;
         this.distroDelayTaskExecuteEngine = distroDelayTaskExecuteEngine;
-        this.singleDistroKey = singleDistroKey;
+        this.singleDistroKey = singleDistroKey; // 这个就是 DistroKey
         this.taskAction = taskAction;
     }
-    
+
     @Override
     public void run() {
         try {
             DistroKey newKey = new DistroKey(DistroHttpCombinedKey.getSequenceKey(),
                     DistroHttpCombinedKeyDelayTask.class.getSimpleName(), singleDistroKey.getTargetServer());
+            // 封装了一个DistroHttpCombinedKeyDelayTask 任务对象
             DistroHttpCombinedKeyDelayTask combinedTask = new DistroHttpCombinedKeyDelayTask(newKey, taskAction,
                     globalConfig.getTaskDispatchPeriod() / 2, globalConfig.getBatchSyncKeyCount());
             combinedTask.getActualResourceKeys().add(singleDistroKey.getResourceKey());

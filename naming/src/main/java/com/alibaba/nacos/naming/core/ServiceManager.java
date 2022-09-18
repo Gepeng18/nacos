@@ -709,7 +709,7 @@ public class ServiceManager implements RecordListener<Service> {
         Map<String, Instance> instanceMap;
         if (datum != null) {
             // setValid 有两个参数，主要是将外来的和本地注册表的实例进行合并
-            // 将注册表中该主机的instance数据替换掉外来的数据
+            // 将外来的instance的health和lastBeat数据用本地的替换掉，即instance以外来的为主，这些instance的healthy和lastBeat以本地的为主
             instanceMap = setValid(((Instances) datum.value).getInstanceList(), currentInstances);
         } else {
             instanceMap = new HashMap<>(ips.length);
@@ -761,6 +761,7 @@ public class ServiceManager implements RecordListener<Service> {
     }
 
     /**
+     * 将外来的instance的health和lastBeat数据用本地的替换掉，即instance以外来的为主，这些instance的healthy和lastBeat以本地的为主
      * @param oldInstances 从nacos集群获得的
      * @param map 本地注册表中的
      */

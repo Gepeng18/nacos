@@ -247,7 +247,7 @@ public class Service extends com.alibaba.nacos.api.naming.pojo.Service implement
      * @param ephemeral whether is ephemeral instance
      */
     public void updateIPs(Collection<Instance> instances, boolean ephemeral) {
-        // do 1、把instance按照clusterName分到map中 Map<CluserName, List<Instance>>
+        // do 1、把instance按照clusterName分到新map中 Map<ClusterName, List<Instance>>
         Map<String, List<Instance>> ipMap = new HashMap<>(clusterMap.size());
         for (String clusterName : clusterMap.keySet()) {
             ipMap.put(clusterName, new ArrayList<>());
@@ -264,6 +264,7 @@ public class Service extends com.alibaba.nacos.api.naming.pojo.Service implement
                     instance.setClusterName(UtilsAndCommons.DEFAULT_CLUSTER_NAME);
                 }
 
+                // 1.1 clusterMap中如果没有新instance，则在clusterMap中放置一个新cluster
                 if (!clusterMap.containsKey(instance.getClusterName())) {
                     Loggers.SRV_LOG
                             .warn("cluster: {} not found, ip: {}, will create new cluster with default configuration.",
@@ -273,6 +274,7 @@ public class Service extends com.alibaba.nacos.api.naming.pojo.Service implement
                     getClusterMap().put(instance.getClusterName(), cluster);
                 }
 
+                // 1.2 将instance放到ipMap对应的clusterName对应的list中。ipMap: Map<clusterName, List<Instance>>
                 List<Instance> clusterIPs = ipMap.get(instance.getClusterName());
                 if (clusterIPs == null) {
                     clusterIPs = new LinkedList<>();

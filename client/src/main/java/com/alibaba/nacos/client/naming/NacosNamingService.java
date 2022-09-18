@@ -139,6 +139,7 @@ public class NacosNamingService implements NamingService {
     }
 
     private void initServerAddr(Properties properties) {
+        // 加载传入的properties中的serverAddr属性
         serverList = properties.getProperty(PropertyKeyConst.SERVER_ADDR);
         endpoint = InitUtils.initEndpoint(properties);
         if (StringUtils.isNotEmpty(endpoint)) {
