@@ -110,7 +110,9 @@ public class EventDispatcher implements Closeable {
             observers.add(listener);
         }
 
-        // 触发了一次服务改变的事件
+        // 触发了一次服务改变的事件，实际上是扔到changedServices这样一个list中，然后本类中启动了一个Notifier线程，死循环从list中取出serviceInfo数据，
+        // 根据serviceInfo从observers的观察者map中获取所有监听这个serviceInfo的listener，然后遍历调用listener.onEvent方法，传入的参数是一个event，
+        // 实际上就是由serviceInfo中的一些变量组成的event
         serviceChanged(serviceInfo);
     }
 
